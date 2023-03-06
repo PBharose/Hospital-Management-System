@@ -14,9 +14,9 @@ db.connect(function(error){
 })
 
 //router
-import authRouter from './routes/authRoutes.js'
+import userRouter from './routes/userRoutes.js'
 import patientRouter from './routes/patientRoutes.js'
-
+import doctorRouter from './routes/doctorRoutes.js'
 //middleware
 notFoundMiddleware
 errorHandlerMiddleware
@@ -26,8 +26,9 @@ app.use(express.json())
 app.get('/', (req, res) => {
   res.send('Welcome!');
 });
-app.use('/api/auth',authRouter)
-app.use('/api/patient',patientRouter)
+app.use('/user',userRouter)
+app.use('/patient',patientRouter)
+app.use('/doctor', doctorRouter)
 app.use(notFoundMiddleware)
 app.use(errorHandlerMiddleware)
 const port = process.env.PORT || 5000;

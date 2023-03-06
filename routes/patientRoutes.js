@@ -1,17 +1,23 @@
 import authenticateUser from '../middleware/auth.js'
 import express from 'express'
 const router = express.Router()
-
-import { personalData, familyData, documents, updatePersonalData, updateFamilyData, deleteProfile } from '../controllers/patientControllers.js'
-
+import { insertPersonalData, insertFamilyData, updatePersonalData, updateFamilyData, deleteSelfProfile, upload, uploadDocument, patientViewAppointments } from '../controllers/patientController.js'
 //Insert data
-router.route('/personal-data').post(authenticateUser,personalData)
-router.route('/family-Data').post(authenticateUser,familyData)
+router.route('/insertPersonalData').post(authenticateUser,insertPersonalData)
+router.route('/insertFamilyData').post(authenticateUser,insertFamilyData)
 
 //update data
-router.route('/update-personal-data').patch(authenticateUser,updatePersonalData)
-router.route('/update-family-data').patch(authenticateUser,updateFamilyData)
+router.route('/updatePersonalData').patch(authenticateUser,updatePersonalData)
+router.route('/updateFamilyData').patch(authenticateUser,updateFamilyData)
 
 //delete profile
-router.route('/delete-profile').delete(authenticateUser, deleteProfile)
+router.route('/deleteSelfProfile').delete(authenticateUser, deleteSelfProfile)
+
+//upload documents
+router.route('/insertDocumentData').post(authenticateUser,upload,uploadDocument)
+
+//view upcoming appointments
+router.route('/patientViewAppointments').get(authenticateUser,patientViewAppointments)
+
+
 export default router

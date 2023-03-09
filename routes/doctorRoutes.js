@@ -7,7 +7,7 @@ import { insertDoctorData,createPatientByDoctor, insertMedicalDataByDoctor, view
 
 router.route('/insertDoctorData').post(authenticateUser,insertDoctorData)
 router.route('/createPatientByDoctor/:id').post(authenticateUser,createPatientByDoctor)
-router.route('/insertMedicalDataByDoctor/:id').post(authenticateUser,insertMedicalDataByDoctor)
+router.route('/insertMedicalDataByDoctor').post(authenticateUser,insertMedicalDataByDoctor)
 router.route('/viewAssignedPatients').get(authenticateUser,viewAssignedPatients)
 
 router.route('/updateDoctorData').patch(authenticateUser,updateDoctorData)

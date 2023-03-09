@@ -10,14 +10,14 @@ router.route('/updateUser').patch(authenticateUser, updateUser)
 
 router.route('/admin/allUsers').get(authenticateUser,allUsers)
 
-router.route('/admin/deletePatient/:id').delete(authenticateUser, deletePatient)
+router.route('/admin/deletePatient').delete(authenticateUser, deletePatient)
 
-router.route('/admin/editUser/:id').patch(authenticateUser,editUserData)
-router.route('/admin/editPersonalData/:id').patch(authenticateUser,editPersonalData)
-router.route('/admin/editFamilyData/:id').patch(authenticateUser,editFamilyData)
+router.route('/admin/editUser').patch(authenticateUser,editUserData)
+router.route('/admin/editPersonalData').patch(authenticateUser,editPersonalData)
+router.route('/admin/editFamilyData').patch(authenticateUser,editFamilyData)
 
-router.route('/admin/insertMedicalDataByAdmin/:patientUserId/:doctorUserId').post(authenticateUser,insertMedicalDataByAdmin)
+router.route('/admin/insertMedicalDataByAdmin').post(authenticateUser,insertMedicalDataByAdmin)
 
-router.route('/admin/viewPatientDocumentByAdmin/:id').get(authenticateUser,viewPatientDocumentByAdmin)
+router.route('/admin/viewPatientDocumentByAdmin').get(authenticateUser,viewPatientDocumentByAdmin)
 
 export default router

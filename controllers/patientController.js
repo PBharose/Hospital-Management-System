@@ -10,7 +10,7 @@ import fs from 'fs'
 const insertPersonalData = async (req, res) => {
     const { mobNumber, DOB, weight, height, countryOfOrigin, diabetic, cardiac, BP, diseaseDescribe } = req.body;
     if (!mobNumber || !DOB || !weight || !height || !countryOfOrigin || !diseaseDescribe) {
-        return res.json({ status: "error", error: "please provide all values" })
+        return res.status(400).json({ status: "error", error: "please provide all values" })
     }
     else {
         var age = new Date().getFullYear() - new Date(DOB).getFullYear()
@@ -21,10 +21,10 @@ const insertPersonalData = async (req, res) => {
         const token = req.headers.authorization.split(' ')[1]
         const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
         patientPersonalByUserId(userIdValue.id, async function (result) {
-            if (result[0]) return res.json({ error: "Personal data already filled!!" })
+            if (result[0]) return res.status(409).json({ error: "Personal data already filled!!" })
             else {
                 insertPatientPersonalData(req, userIdValue.id, age, BMI, async function (result1) {
-                    return res.json({ status: "success", success: "Personal data filled!!" })
+                    return res.status(201).json({ status: "success", success: "Personal data filled!!" })
                 })
             }
         })
@@ -40,15 +40,15 @@ const insertFamilyData = async (req, res) => {
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
 
     if (!fatherName || !fatherAge || !fatherCountry || !motherName || !motherAge || !motherCountry) {
-        return res.json({ status: "error", error: "please provide all values" })
+        return res.status(400).json({ status: "error", error: "please provide all values" })
     }
     else {
         patientPersonalByUserId(userIdValue.id, async function (personalData) {
             patientFamilyByPatientId(personalData[0].patientId, async function (familyData) {
-                if (familyData[0]) return res.json({ error: "Family data is already filled!!" })
+                if (familyData[0]) return res.status(409).json({ error: "Family data is already filled!!" })
                 else {
                     insertPatientFamilyData(personalData[0].patientId, req, async function (result) {
-                        return res.json({ status: "success", success: "Family data filled!!" })
+                        return res.status(201).json({ status: "success", success: "Family data filled!!" })
                     })
                 }
             })
@@ -91,10 +91,10 @@ const uploadDocument = (req, res) => {
         patientPersonalByUserId(userIdValue.id, async function (personalData) {
             patientDocumentByPatientId(personalData[0].patientId, async function (documentData) {
                 if (documentData[0]) {
-                    return res.send("Patient Id already filled.")
+                    return res.status(409).send("Patient Id already filled.")
                 } else {
                     insertPatientIdDocumentData(personalData[0].patientId, async function (result) {
-                        return res.send("Documents uploaded.")
+                        return res.status(201).send("Documents uploaded.")
                     })
                 }
             })
@@ -123,7 +123,7 @@ const uploadDocument = (req, res) => {
         }
         patientPersonalByUserId(userIdValue.id, async function (personalData) {
             insertPatientDocumentData(i, personalData[0].patientId, function (result) {
-                res.send("File uploaded successfully");
+                res.status(201).send("File uploaded successfully");
             })
         })
         fs.unlinkSync(newfilepath)
@@ -159,7 +159,7 @@ const updatePersonalData = async (req, res) => {
             BMI = hwValue[0].BMI
         }
         updatePatientPersonalData(req, age, BMI, userIdValue.id, async function (result) {
-            return res.send("Personal data updated successfully.")
+            return res.status(200).send("Personal data updated successfully.")
         })
     })
 }
@@ -169,7 +169,7 @@ const updateFamilyData = async (req, res) => {
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
     patientPersonalByUserId(userIdValue.id, async function (personalData) {
         updatePatientFamilyData(personalData[0].patientId, req, async function (result) {
-            return res.send("Family data updated successfully.")
+            return res.status(200).send("Family data updated successfully.")
         })
     })
 }
@@ -182,7 +182,7 @@ const deleteSelfProfile = (req, res) => {
     patientPersonalByUserId(userIdValue.id, async function (personalData) {
         if (!personalData[0]) {
             deleteUserData(userIdValue.id, async function (del) {
-                return res.send("Record deleted Successfully.")
+                return res.status(200).send("Record deleted Successfully.")
             })
         }
         else {
@@ -190,7 +190,7 @@ const deleteSelfProfile = (req, res) => {
                 deletePatientFamilyData(personalData[0].patientId, async function (del2) {
                     deletePatientPersonalData(personalData[0].patientId, async function (del3) {
                         deleteUserData(userIdValue.id, async function (del4) {
-                            return res.send("Record deleted Successfully")
+                            return res.status(200).send("Record deleted Successfully")
                         })
                     })
                 })
@@ -205,7 +205,7 @@ const patientViewAppointments = (req,res) => {
 
     patientPersonalByUserId(userIdValue.id, async function (personalData) {
         patientAppointmentData(personalData[0].patientId, async function (result) {
-            return res.json(result);
+            return res.status(200).json(result);
         })
     })
 }

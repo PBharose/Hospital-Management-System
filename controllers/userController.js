@@ -1,33 +1,29 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import Randomstring from "randomstring"
 import sendMail from '../helpers/sendMail.js'
-import { checkIsAdmin, insertUserData, allUserData, userDataByEmail, updateUserData, deleteUserData, } from "../models/userModel.js"
-import { patientPersonalByUserId, updatePatientPersonalData, updatePatientFamilyData, deletePatientFamilyData, deletePatientPersonalData, deletePatientDocumentData, patientMedicalDataByUserId, insertPatientMedicalData, deletePatientReportData, deletePatientMedicalData,assignedPatientWithDoctor } from "../models/patientModel.js"
+import randomstring from 'randomstring'
+import { userDataByEmail, insertUserData, checkIsAdmin, allUserData, updateUserData, deleteUserData, deletePatientReportData, deletePatientMedicalData } from '../models/userModel.js'
+import { patientPersonalByUserId, updatePatientPersonalData, updatePatientFamilyData, deletePatientFamilyData, deletePatientPersonalData, deletePatientDocumentData, patientMedicalDataByUserId, insertPatientMedicalData, patientDocumentByPatientId } from '../models/patientModel.js'
 import { doctorDataByUserId } from '../models/doctorModel.js'
 
-//USER CREATION FUNCTION
+
 const registerUser = async (req, res) => {
-
-    const { firstName, lastName, emailId, userPassword } = req.body
-
+    const { emailId, userPassword, firstName, lastName } = req.body
     if (!firstName || !lastName || !emailId || !userPassword) {
-        return res.status(400).json({ status: "error", error: "please provide all values" })
-    }
-    else {
+        return res.status(400).json({
+            status: "error", error: "Please provide all values"
+        })
+    } else {
         userDataByEmail(req, async function (result) {
-            if (result[0]) return res.status(409).json({ error: "Email Id is already registered" })
+            if (result[0]) return res.status(409).json({ status: "error", error: "Email Id is already registered!!" })
             else {
                 const password = await bcrypt.hash(userPassword, 12);
-
                 insertUserData(req, password, function (result) {
-                    let mailSubject = 'Mail Verification';
-                    const randomToken = Randomstring.generate();
-                    let content = '<p>Hii ' + req.body.firstName + ', Please <a href = "http://localhost:3000/mail-verification?token=' + randomToken + '"> Verify your email!!</a>'
-
-                    sendMail(req.body.emailId, mailSubject, content)
-
-                    return res.status(201).json({ status: "success", success: "User registered Successfully!!" })
+                    let mailSubject = 'Mail verification'
+                    const randomToken = randomstring.generate()
+                    let content = '<p> Hi ' + req.body.firstName + ', Please <a href = "http://localhost:4000/mail-verification?token=' + randomToken + '"> Verify your email!!</a>'
+                    sendMail(req.body.emailId, mailSubject, content);
+                    return res.status(200).json({ status: "success", success: "User registered successfully!!" })
                 })
             }
         })
@@ -118,7 +114,6 @@ const editPersonalData = async (req, res) => {
                 else {
                     age = hwValue[0].age
                 }
-
                 if (height && weight) {
                     var h = height.split("-")
                     BMI = (weight / (h[0] * 0.3048 + h[1] * 0.0254) ** 2).toFixed(2)
@@ -210,7 +205,6 @@ const insertMedicalDataByAdmin = (req, res) => {
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
     const patientUserId = req.query.patientUserId
     const doctorUserId = req.query.doctorUserId
-
     checkIsAdmin(userIdValue.id, function (result) {
         if (result[0].isAdmin == 1) {
             if (!appointmentDateTime || !reasonForAppointment) {
@@ -245,7 +239,6 @@ const insertMedicalDataByAdmin = (req, res) => {
         }
     })
 }
-
 const viewPatientDoctor = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
@@ -261,4 +254,24 @@ const viewPatientDoctor = async (req, res) => {
         }
     })
 }
-export { registerUser, loginUser, updateUser, allUsers, editUserData, editPersonalData, editFamilyData, deletePatient, insertMedicalDataByAdmin, viewPatientDoctor }
+
+const viewPatientDocumentByAdmin = (req, res) => {
+    const token = req.headers.authorization.split(' ')[1];
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET);
+    const id = req.query
+    checkIsAdmin(userIdValue.id, function (result) {
+        if (result[0].isAdmin == 1) {
+
+            patientPersonalByUserId(id.id, async function (personalData) {
+                patientDocumentByPatientId(personalData[0].patientId, async function (result) {
+                    return res.status(200).json(result);
+                })
+            })
+        }
+        else {
+            return res.status(401).send("Unauthorized user")
+        }
+    })
+}
+
+export { registerUser, loginUser, updateUser, allUsers, editFamilyData, editUserData, editPersonalData, deletePatient, insertMedicalDataByAdmin,viewPatientDoctor, viewPatientDocumentByAdmin }

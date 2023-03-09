@@ -82,4 +82,24 @@ const userDataByUserId = (id, callback) => {
         return callback(result)
     })
 }
-export { userDataByEmail, insertUserData, checkIsAdmin, allUserData, updateUserData, deleteUserData, userDataByUserId }
+
+
+const deletePatientMedicalData = (id, callback) => {
+    db.query("DELETE FROM patientMedicalData WHERE patientId =?", [id], async (err, result) => {
+        if (err) {
+            console.log(err)
+        } else {
+            return callback(result)
+        }
+    })
+}
+const deletePatientReportData = (id, callback) => {
+    db.query("DELETE FROM patientMedicalReport WHERE patientId =?", [id], async (err, result) => {
+        if (err) {
+            console.log(err)
+        } else {
+            return callback(result)
+        }
+    })
+}
+export { userDataByEmail, insertUserData, checkIsAdmin, allUserData, updateUserData, deleteUserData, userDataByUserId,deletePatientMedicalData, deletePatientReportData }

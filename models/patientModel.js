@@ -1,20 +1,16 @@
-import db from "../db/connect.js";
-
+import db from '../db/connect.js'
 
 const patientPersonalByUserId = (id, callback) => {
     db.query('SELECT * from patientPersonalData WHERE userId=?', [id], async (err, result) => {
-        if (err) {
-            console.log(err)
-        } else {
-
-            return callback(result)
+        if (err){
+            console.log(err);
         }
+        return callback(result)
     })
 }
 
-const insertPatientPersonalData = (req, id, age, BMI, callback) => {
-
-    db.query('INSERT INTO patientPersonalData SET ?', {
+const insertPatientPersonalData = (req,id, age, BMI, callback) => {
+    db.query('INSERT INTO patientPersonalData  SET ?', {
         userId: id,
         mobNumber: req.body.mobNumber,
         DOB: req.body.DOB,
@@ -75,34 +71,29 @@ const insertPatientIdDocumentData = (id, callback) => {
 }
 
 const insertPatientDocumentData = (req, id, callback) => {
-    //console.log(req)
-    const url = "https://drive.google.com/file/d/"
+    const url = 'https://drive.google.com/file/d/';
     if (req.name == 'AadharFront.png') {
-        db.query("UPDATE patientDocumentData SET aadharFront=? WHERE patientId=?", [url + req.id, id], async (err, result) => {
-            if (err) {
-                console.log(err)
-            }
+        db.query("UPDATE patientDocumentData SET aadharFront=? WHERE patientId=?", [url+req.id, id], async (err, result)=>{
+            if (err) throw err;
         })
+
     }
+
     else if (req.name == 'AadharBack.png') {
-        db.query("UPDATE patientDocumentData SET aadharBack=? WHERE patientId=?", [url + req.id, id], async (err, result) => {
-            if (err) {
-                console.log(err)
-            }
+        db.query("UPDATE patientDocumentData SET aadharBack=? WHERE patientId=?", [url+req.id, id], async (err, result) => {
+            if (err) throw err
         })
     }
+
     else if (req.name == 'InsuranceFront.png') {
-        db.query("UPDATE patientDocumentData SET insuranceFront=? WHERE patientId=?", [url + req.id, id], async (err, result) => {
-            if (err) {
-                console.log(err)
-            }
+        db.query("UPDATE patientDocumentData SET insuranceFront =? WHERE patientId=?", [url+req.id, id], async (err, result) => {
+            if (err) throw err
         })
     }
+
     else if (req.name == 'InsuranceBack.png') {
-        db.query("UPDATE patientDocumentData SET insuranceBack=? WHERE patientId=?", [url + req.id, id], async (err, result) => {
-            if (err) {
-                console.log(err)
-            }
+        db.query("UPDATE patientDocumentData SET insuranceBack=? WHERE patientId=?", [url+req.id, id], async (err, result) => {
+            if (err) throw err
         })
     }
 }

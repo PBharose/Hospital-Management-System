@@ -66,12 +66,10 @@ const upload = multer({
     })
 }).array("filename", 4);
 
-
-const uplaodDocument = (req, res) => {
-    var i;
+const uploadDocument = (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
-    const userIdvalue = jwt.verify(token, process.env.JWT_SECRET)
-
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
+    var i;
     const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_DRIVE_CLIENT_ID,
         process.env.GOOGLE_DRIVE_REDIRECT_URI,
@@ -92,7 +90,7 @@ const uplaodDocument = (req, res) => {
         if (err) throw err;
         files.forEach(file => newf.push(path.join(__filePath, file)))
 
-        patientPersonalByUserId(userIdvalue.id, function (personalData) {
+        patientPersonalByUserId(userIdValue.id, function (personalData) {
             patientDocumentByPatientId(personalData[0].patientId, function (documentData) {
                 if (documentData[0]) return res.status(409).json({ error: "patientId already filled" })
                 else {
@@ -123,7 +121,7 @@ const uplaodDocument = (req, res) => {
             console.log(err)
             throw err
         }
-        patientPersonalByUserId(userIdvalue.id, function (personalData) {
+        patientPersonalByUserId(userIdValue.id, function (personalData) {
             insertPatientDocumentData(i, personalData[0].patientId, function (result) {
                 return res.status(201).send("File uploaded successfully");
             })
@@ -147,7 +145,6 @@ const updatePersonalData = async (req, res, next) => {
         else {
             age = hwValue[0].age
         }
-
         if (height && weight) {
             var h = height.split("-")
             BMI = (weight / (h[0] * 0.3048 + h[1] * 0.0254) ** 2).toFixed(2)
@@ -162,53 +159,57 @@ const updatePersonalData = async (req, res, next) => {
         else {
             BMI = hwValue[0].BMI
         }
-        updatePatientPersonalData(req, age, BMI, userIdvalue.id, function (result) {
-            return res.status(200).send("Personal Data updated successfully")
+        updatePatientPersonalData(req, age, BMI, userIdValue.id, async function (result) {
+            return res.status(200).send("Personal data updated successfully.")
         })
     })
-
 }
 
-//UPDATED LOGGED PATIENTS FAMILY DETAILS
-const updateFamilyData = async (req, res, next) => {
+const updateFamilyData = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
-    const userIdvalue = jwt.verify(token, process.env.JWT_SECRET)
-    patientPersonalByUserId(userIdvalue.id, function (personalData) {
-        updatePatientFamilyData(req, personalData[0].patientId, function (result) {
-            return res.status(200).send("Family Data updated successfully")
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
+    patientPersonalByUserId(userIdValue.id, async function (personalData) {
+        updatePatientFamilyData(personalData[0].patientId, req, async function (result) {
+            return res.status(200).send("Family data updated successfully.")
         })
     })
 }
 
 
-//DELETED LOGGED USERS DETAILS
 const deleteSelfProfile = (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
-    const userIdvalue = jwt.verify(token, process.env.JWT_SECRET)
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET);
 
-    patientPersonalByUserId(userIdvalue.id, function (personalData) {
+    patientPersonalByUserId(userIdValue.id, async function (personalData) {
         if (!personalData[0]) {
-            deleteUserData(req, userIdvalue.id, function (del) {
-                return res.status(204).send("Record deleted Successfully")
+            deleteUserData(userIdValue.id, async function (del) {
+                return res.status(200).send("Record deleted Successfully.")
             })
         }
         else {
-            deletePatientReportData(req, personalData[0].patientId, function (del1) {
-                deletePatientMedicalData(req, personalData[0].patientId, function (del2) {
-                    deletePatientDocumentData(req, personalData[0].patientId, function (del3) {
-                        deletePatientFamilyData(req, personalData[0].patientId, function (del4) {
-                            deletePatientPersonalData(req, personalData[0].patientId, function (del5) {
-                                deleteUserData(req, userIdvalue.id, function (del6) {
-                                    return res.status(202).send("Record deleted successfully")
-                                })
-                            })
+            deletePatientDocumentData(personalData[0].patientId, async function (del1) {
+                deletePatientFamilyData(personalData[0].patientId, async function (del2) {
+                    deletePatientPersonalData(personalData[0].patientId, async function (del3) {
+                        deleteUserData(userIdValue.id, async function (del4) {
+                            return res.status(200).send("Record deleted Successfully")
                         })
                     })
                 })
             })
         }
     })
-
 }
 
-export { insertPersonalData, insertFamilyData, upload, uplaodDocument, updatePersonalData, updateFamilyData, deleteSelfProfile }
+const patientViewAppointments = (req,res) => {
+    const token = req.headers.authorization.split(' ')[1];
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET);
+
+    patientPersonalByUserId(userIdValue.id, async function (personalData) {
+        patientAppointmentData(personalData[0].patientId, async function (result) {
+            return res.status(200).json(result);
+        })
+    })
+}
+
+
+export { insertPersonalData, insertFamilyData, updatePersonalData, updateFamilyData, deleteSelfProfile, uploadDocument, upload, patientViewAppointments}

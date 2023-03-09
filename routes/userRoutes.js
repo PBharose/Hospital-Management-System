@@ -1,7 +1,7 @@
 import express from 'express'
 const router = express.Router()
 
-import{registerUser,loginUser,updateUser,allUsers,editUserData,editPersonalData,editFamilyData,deletePatient,insertMedicalDataByAdmin,viewPatientDoctor} from "../controllers/userController.js"
+import{registerUser,loginUser,updateUser,allUsers,editUserData,editPersonalData,editFamilyData,deletePatient,insertMedicalDataByAdmin,viewPatientDoctor,viewPatientDocumentByAdmin} from "../controllers/userController.js"
 import authenticateUser from '../middleware/auth.js'
 
 
@@ -21,6 +21,6 @@ router.route('/admin/deletePatient').delete(authenticateUser,deletePatient)
 router.route('/admin/insertMedicalDataByAdmin').post(authenticateUser,insertMedicalDataByAdmin)
 router.route('/admin/viewPatientDoctor').get(authenticateUser,viewPatientDoctor)
 
-
+router.route('/admin/viewPatientDocumentByAdmin').get(authenticateUser,viewPatientDocumentByAdmin)
 
 export default router

@@ -68,9 +68,9 @@ app.post('/getToken', (req, res) => {
 });
 
 //
-app.use('/user', userRouter)
-app.use('/patient', patientRouter)
-app.use('/doctor', doctorRouter)
+app.use('/api/v1/user', userRouter)
+app.use('/api/v1/patient', patientRouter)
+app.use('/api/v1/doctor', doctorRouter)
 app.use(notFoundMiddleware)
 app.use(errorHandlerMiddleware)
 const port = process.env.PORT || 5000;

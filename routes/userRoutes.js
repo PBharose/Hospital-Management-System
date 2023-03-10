@@ -6,21 +6,21 @@ import authenticateUser from '../middleware/auth.js'
 
 
 //USER ROUTES
-router.route('/registerUser').post(registerUser)
-router.route('/loginUser').post(loginUser)
-router.route('/updateUser').patch(authenticateUser,updateUser)
+router.route('/register-user').post(registerUser)
+router.route('/login-user').post(loginUser)
+router.route('/update-user').patch(authenticateUser,updateUser)
 
 
 //ADMIN ROUTES
-router.route('/admin/allUsers').get(authenticateUser,allUsers)
-router.route('/admin/editPersonalData').patch(authenticateUser,editPersonalData)
-router.route('/admin/editFamilyData').patch(authenticateUser,editFamilyData)
-router.route('/admin/editUserData').patch(authenticateUser,editUserData)
-router.route('/admin/deletePatient').delete(authenticateUser,deletePatient)
+router.route('/admin/all-users').get(authenticateUser,allUsers)
+router.route('/admin/edit-personal-data').patch(authenticateUser,editPersonalData)
+router.route('/admin/edit-family-data').patch(authenticateUser,editFamilyData)
+router.route('/admin/edit-user-data').patch(authenticateUser,editUserData)
+router.route('/admin/delete-patient').delete(authenticateUser,deletePatient)
 
-router.route('/admin/insertMedicalDataByAdmin').post(authenticateUser,insertMedicalDataByAdmin)
-router.route('/admin/viewPatientDoctor').get(authenticateUser,viewPatientDoctor)
+router.route('/admin/insert-medical-data').post(authenticateUser,insertMedicalDataByAdmin)
+router.route('/admin/view-patient-doctor').get(authenticateUser,viewPatientDoctor)
 
-router.route('/admin/viewPatientDocumentByAdmin').get(authenticateUser,viewPatientDocumentByAdmin)
+router.route('/admin/view-patient-documents').get(authenticateUser,viewPatientDocumentByAdmin)
 
 export default router

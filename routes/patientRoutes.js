@@ -5,17 +5,17 @@ import{ insertPersonalData, insertFamilyData ,upload,uploadDocument,updatePerson
 import authenticateUser from '../middleware/auth.js'
 
 
-router.route('/insertPersonalData').post(authenticateUser,insertPersonalData) 
-router.route('/insertFamilyData').post(authenticateUser,insertFamilyData) 
-router.route('/insertDocumentData').post(authenticateUser,upload,uploadDocument)
+router.route('/insert-personal-data').post(authenticateUser,insertPersonalData) 
+router.route('/insert-family-data').post(authenticateUser,insertFamilyData) 
+router.route('/insert-document-data').post(authenticateUser,upload,uploadDocument)
 
-router.route('/updatePersonalData').patch(authenticateUser,updatePersonalData)
-router.route('/updateFamilyData').patch(authenticateUser,updateFamilyData)
+router.route('/update-personal-data').patch(authenticateUser,updatePersonalData)
+router.route('/update-family-data').patch(authenticateUser,updateFamilyData)
 
-router.route('/deleteSelfProfile').delete(authenticateUser,deleteSelfProfile)
+router.route('/delete-self-profile').delete(authenticateUser,deleteSelfProfile)
 
 //view upcoming appointments
-router.route('/patientViewAppointments').get(authenticateUser,patientViewAppointments)
+router.route('/view-patient-appointments').get(authenticateUser,patientViewAppointments)
 
 
 export default router

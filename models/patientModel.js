@@ -266,7 +266,7 @@ const viewAppointments = (doctorId, callback) => {
 }
 
 const availablePatients = (callback) => {
-    db.query("SELECT patientId,firstName,lastName FROM userData JOIN patientpersonaldata ON userData.userId=patientpersonaldata.userId WHERE patientId NOT IN(SELECT patientId FROM patientmedicaldata WHERE appointmentDateTime>now()", (err, result) => {
+    db.query("SELECT patientId,firstName,lastName FROM userData JOIN patientpersonaldata ON userData.userId=patientpersonaldata.userId WHERE patientId IN(SELECT patientId FROM patientmedicaldata WHERE appointmentDateTime<now())", (err, result) => {
         if (err) {
             console.log(err)
         }
@@ -287,4 +287,14 @@ const assignedPatientWithDoctor = (callback) => {
         }
     })
 }
-export { patientPersonalByUserId, insertPatientPersonalData, insertPatientFamilyData, insertPatientIdDocumentData, insertPatientDocumentData, insertPatientMedicalData, patientFamilyByPatientId, patientDocumentByPatientId, patientMedicalDataByUserId, updatePatientPersonalData, updatePatientFamilyData, deletePatientMedicalData, deletePatientReportData, deletePatientDocumentData, deletePatientFamilyData, deletePatientPersonalData, viewPatientMedicalHistory, updatePatientMedicalData, viewMedicalHistoryByDoctor, ScheduleAppointments, viewAppointments, availablePatients, assignedPatientWithDoctor }
+const patientAppointmentData = (id,callback) => {
+    db.query('select firstName, lastName, appointmentDateTime from patientMedicalData Join doctorData on patientMedicalData.doctorId = doctorData.doctorId join userData on userData.userId = doctorData.userId where patientMedicalData.patientId = ? and appointmentDateTime >= now() ', [id], async (err, result) => {
+        if (err) {
+            console.log(err)
+        } else {
+
+            return callback(result)
+        }
+    })
+}
+export { patientPersonalByUserId, insertPatientPersonalData, insertPatientFamilyData, insertPatientIdDocumentData, insertPatientDocumentData, insertPatientMedicalData, patientFamilyByPatientId, patientDocumentByPatientId, patientMedicalDataByUserId, updatePatientPersonalData, updatePatientFamilyData, deletePatientMedicalData, deletePatientReportData, deletePatientDocumentData, deletePatientFamilyData, deletePatientPersonalData, viewPatientMedicalHistory, updatePatientMedicalData, viewMedicalHistoryByDoctor, ScheduleAppointments, viewAppointments, availablePatients, assignedPatientWithDoctor,patientAppointmentData }

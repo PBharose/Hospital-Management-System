@@ -64,7 +64,7 @@ const updateUserData = (req, id, callback) => {
     })
 }
 
-const deleteUserData = (req, id, callback) => {
+const deleteUserData = (id, callback) => {
     db.query("DELETE FROM userData WHERE userId=?", [id], async (err, result) => {
         if (err) {
             console.log(err)

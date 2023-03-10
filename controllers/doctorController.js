@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 import fsExtra from 'fs-extra'
 
 import { checkIsDoctor, doctorDataByUserId, fillDoctorData, allPatientsByDoctorId, updateDoctorPersonalData, insertMedicalReport, allReportsByPatientId } from '../models/doctorModel.js'
-import { patientPersonalByUserId, insertPatientPersonalData, patientMedicalDataByUserId, insertPatientMedicalData } from '../models/patientModel.js';
+import { patientPersonalByUserId, insertPatientPersonalData, patientMedicalDataByUserId, insertPatientMedicalData, viewPatientMedicalHistory, updatePatientMedicalData, viewMedicalHistoryByDoctor, ScheduleAppointments, viewAppointments, availablePatients } from '../models/patientModel.js';
 import { userDataByUserId } from '../models/userModel.js';
 
 import credentials from '../credentials.json' assert {type: "json"};
@@ -227,9 +227,9 @@ const uploadReport = multer({
 const uploadMedicalReport = (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    const id = req.params
+    const id = req.query
     var i;
-    const authToken= JSON.parse( req.body.token);
+    const authToken = JSON.parse(req.body.token);
     console.log(authToken)
     oAuth2Client.setCredentials(authToken)
 
@@ -402,7 +402,7 @@ const uploadMedicalReport = (req, res) => {
 const viewPatientReports = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    const id =req.params;
+    const id = req.query;
     checkIsDoctor(userIdValue.id, async function (result) {
         if (result[0].isDoctor == 1) {
             doctorDataByUserId(userIdValue.id, function (doctorData) {
@@ -419,7 +419,7 @@ const viewPatientReports = async (req, res) => {
                                     return res.status(403).send("This patient is not assigned you.")
                                 }
                                 else {
-                                    allReportsByPatientId(personalData[0].patientId, doctorData[0].doctorId, function (result){
+                                    allReportsByPatientId(personalData[0].patientId, doctorData[0].doctorId, function (result) {
                                         return res.status(200).json(result)
                                     })
                                 }
@@ -468,7 +468,7 @@ const availablePatientsForAppointment = async (req, res) => {
                 return res.status(200).json({ result })
             })
 
-            }
+        }
         else {
             return res.status(401).send("Unauthorized user")
         }
@@ -540,4 +540,4 @@ const ScheduleAppointmentsByDoctor = async (req, res) => {
 }
 
 
-export { insertDoctorData, createPatientByDoctor, insertMedicalDataByDoctor, viewAssignedPatients, updateDoctorData, uploadReport, uploadMedicalReport, viewPatientReports ,updatePMDataByDoctor, viewMedicalHistory, ScheduleAppointmentsByDoctor, viewAppointmentByDoctor,availablePatientsForAppointment}
+export { insertDoctorData, createPatientByDoctor, insertMedicalDataByDoctor, viewAssignedPatients, updateDoctorData, uploadReport, uploadMedicalReport, viewPatientReports, updatePMDataByDoctor, viewMedicalHistory, ScheduleAppointmentsByDoctor, viewAppointmentByDoctor, availablePatientsForAppointment }

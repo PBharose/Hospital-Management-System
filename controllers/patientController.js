@@ -5,7 +5,7 @@ import multer from 'multer'
 import { fileURLToPath } from 'url'
 import { google } from 'googleapis'
 import { deleteUserData, } from "../models/userModel.js"
-import { patientPersonalByUserId, patientFamilyByPatientId, patientDocumentByPatientId, insertPatientPersonalData, insertPatientFamilyData, insertPatientIdDocumentData, insertPatientDocumentData, updatePatientPersonalData, updatePatientFamilyData, deletePatientFamilyData, deletePatientPersonalData, deletePatientDocumentData, deletePatientReportData, deletePatientMedicalData } from '../models/patientModel.js'
+import { patientPersonalByUserId, patientFamilyByPatientId, patientDocumentByPatientId, insertPatientPersonalData, insertPatientFamilyData, insertPatientIdDocumentData, insertPatientDocumentData, updatePatientPersonalData, updatePatientFamilyData, deletePatientFamilyData, deletePatientPersonalData, deletePatientDocumentData, deletePatientReportData, deletePatientMedicalData, patientAppointmentData } from '../models/patientModel.js'
 
 //INSERTING PERSONAL DETAILS FOR LOGGED USER
 const insertPersonalData = (req, res) => {
@@ -159,7 +159,7 @@ const updatePersonalData = async (req, res, next) => {
         else {
             BMI = hwValue[0].BMI
         }
-        updatePatientPersonalData(req, age, BMI, userIdValue.id, async function (result) {
+        updatePatientPersonalData(req, age, BMI, userIdvalue.id, async function (result) {
             return res.status(200).send("Personal data updated successfully.")
         })
     })
@@ -169,7 +169,7 @@ const updateFamilyData = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
     patientPersonalByUserId(userIdValue.id, async function (personalData) {
-        updatePatientFamilyData(personalData[0].patientId, req, async function (result) {
+        updatePatientFamilyData(req, personalData[0].patientId, async function (result) {
             return res.status(200).send("Family data updated successfully.")
         })
     })
@@ -179,7 +179,7 @@ const updateFamilyData = async (req, res) => {
 const deleteSelfProfile = (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET);
-
+    
     patientPersonalByUserId(userIdValue.id, async function (personalData) {
         if (!personalData[0]) {
             deleteUserData(userIdValue.id, async function (del) {
@@ -200,7 +200,7 @@ const deleteSelfProfile = (req, res) => {
     })
 }
 
-const patientViewAppointments = (req,res) => {
+const patientViewAppointments = (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -212,4 +212,4 @@ const patientViewAppointments = (req,res) => {
 }
 
 
-export { insertPersonalData, insertFamilyData, updatePersonalData, updateFamilyData, deleteSelfProfile, uploadDocument, upload, patientViewAppointments}
+export { insertPersonalData, insertFamilyData, updatePersonalData, updateFamilyData, deleteSelfProfile, uploadDocument, upload, patientViewAppointments }

@@ -41,7 +41,7 @@ const fillDoctorData = (req, id, callback) => {
 }
 
 const allPatientsByDoctorId = (id,callback) => {
-    db.query('select firstName, lastName from userData where userId in (select userId from patientPersonalData where patientId in (select patientId from patientMedicalData where doctorId = ?))', [id], async (err, result) => {
+    db.query('select patientPersonalData.patientId, firstName,lastName from userData join patientPersonalData on userData.userId=patientPersonalData.userId join patientMedicalData on patientPersonalData.patientId=patientMedicalData.patientId where patientMedicalData.doctorId=?', [id], async (err, result) => {
         if (err){
             console.log(err);
         }

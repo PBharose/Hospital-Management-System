@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import sendMail from '../helpers/sendMail.js'
 import randomstring from 'randomstring'
 import { userDataByEmail, insertUserData, checkIsAdmin, allUserData, updateUserData, deleteUserData, deletePatientReportData, deletePatientMedicalData } from '../models/userModel.js'
-import { patientPersonalByUserId, updatePatientPersonalData, updatePatientFamilyData, deletePatientFamilyData, deletePatientPersonalData, deletePatientDocumentData, patientMedicalDataByUserId, insertPatientMedicalData, patientDocumentByPatientId } from '../models/patientModel.js'
+import { patientPersonalByUserId, updatePatientPersonalData, updatePatientFamilyData, deletePatientFamilyData, deletePatientPersonalData, deletePatientDocumentData, patientMedicalDataByUserId, insertPatientMedicalData, patientDocumentByPatientId, assignedPatientWithDoctor } from '../models/patientModel.js'
 import { doctorDataByUserId } from '../models/doctorModel.js'
 
 
@@ -169,7 +169,7 @@ const deletePatient = async (req, res) => {
         if (result[0].isAdmin == 1) {
             patientPersonalByUserId(id.id, function (personalData) {
                 if (!personalData[0]) {
-                    deleteUserData(req, id.id, function (del) {
+                    deleteUserData(id.id, function (del) {
                         return res.status(204).send("Record deleted Successfully")
                     })
                 }
@@ -245,8 +245,8 @@ const viewPatientDoctor = async (req, res) => {
     checkIsAdmin(userIdValue.id, function (result) {
         if (result[0].isAdmin == 1) {
             assignedPatientWithDoctor(function (result) {
-              
-                return res.status(200).json({result })
+
+                return res.status(200).json({ result })
             })
         }
         else {
@@ -274,4 +274,4 @@ const viewPatientDocumentByAdmin = (req, res) => {
     })
 }
 
-export { registerUser, loginUser, updateUser, allUsers, editFamilyData, editUserData, editPersonalData, deletePatient, insertMedicalDataByAdmin,viewPatientDoctor, viewPatientDocumentByAdmin }
+export { registerUser, loginUser, updateUser, allUsers, editFamilyData, editUserData, editPersonalData, deletePatient, insertMedicalDataByAdmin, viewPatientDoctor, viewPatientDocumentByAdmin }

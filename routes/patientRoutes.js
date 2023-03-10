@@ -14,9 +14,6 @@ router.route('/updateFamilyData').patch(authenticateUser,updateFamilyData)
 
 router.route('/deleteSelfProfile').delete(authenticateUser,deleteSelfProfile)
 
-//upload documents
-router.route('/insertDocumentData').post(authenticateUser,upload,uploadDocument)
-
 //view upcoming appointments
 router.route('/patientViewAppointments').get(authenticateUser,patientViewAppointments)
 

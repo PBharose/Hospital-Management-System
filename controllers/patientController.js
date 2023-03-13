@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import { google } from 'googleapis'
 import { deleteUserData, } from "../models/userModel.js"
 import { patientPersonalByUserId, patientFamilyByPatientId, patientDocumentByPatientId, insertPatientPersonalData, insertPatientFamilyData, insertPatientIdDocumentData, insertPatientDocumentData, updatePatientPersonalData, updatePatientFamilyData, deletePatientFamilyData, deletePatientPersonalData, deletePatientDocumentData, deletePatientReportData, deletePatientMedicalData, patientAppointmentData } from '../models/patientModel.js'
+import config from '../config.json' assert {type: "json"}
 
 //INSERTING PERSONAL DETAILS FOR LOGGED USER
 const insertPersonalData = (req, res) => {
@@ -19,14 +20,14 @@ const insertPersonalData = (req, res) => {
     const userIdvalue = jwt.verify(token, process.env.JWT_SECRET)
 
     if (!mobNumber || !DOB || !weight || !height || !countryOfOrigin || !diseaseDescribe) {
-        return res.status(400).json({ status: "error", error: "please provide all values" })
+        return res.status(config.error.allValues.statusCode).send(config.error.allValues)
     }
     else {
         patientPersonalByUserId(userIdvalue.id, function (result) {
-            if (result[0]) return res.status(409).json({ error: "Personal data is already filled" })
+            if (result[0]) res.status(config.error.alreadyExist.statusCode).send(config.error.alreadyExist)
             else {
                 insertPatientPersonalData(req, userIdvalue.id, age, BMI, function (result1) {
-                    return res.status(201).json({ status: "success", success: "Personal data is filled." })
+                    return res.status(config.success.insert.statusCode).send(config.success.insert)
                 })
             }
         })
@@ -41,15 +42,15 @@ const insertFamilyData = (req, res) => {
     const userIdvalue = jwt.verify(token, process.env.JWT_SECRET)
 
     if (!fatherName || !fatherAge || !fatherCountry || !motherName || !motherAge || !motherCountry) {
-        return res.status(400).json({ status: "error", error: "please provide all values" })
+        return res.status(config.error.allValues.statusCode).send(config.error.allValues)
     }
     else {
         patientPersonalByUserId(userIdvalue.id, function (personalData) {
             patientFamilyByPatientId(personalData[0].patientId, function (familyData) {
-                if (familyData[0]) return res.status(409).json({ error: "Family data is alreay filled" })
+                if (familyData[0]) return res.status(config.error.alreadyExist.statusCode).send(config.error.alreadyExist)
                 else {
                     insertPatientFamilyData(req, personalData[0].patientId, function (result) {
-                        return res.status(201).json({ status: "success", success: "Patient family data filled." })
+                        return res.status(config.success.insert.statusCode).send(config.success.insert)
                     })
                 }
             })
@@ -92,10 +93,10 @@ const uploadDocument = (req, res) => {
 
         patientPersonalByUserId(userIdValue.id, function (personalData) {
             patientDocumentByPatientId(personalData[0].patientId, function (documentData) {
-                if (documentData[0]) return res.status(409).json({ error: "patientId already filled" })
+                if (documentData[0]) return res.status(config.error.alreadyExist.statusCode).send(config.error.alreadyExist)
                 else {
                     insertPatientIdDocumentData(personalData[0].patientId, function (result) {
-                        return res.status(201).json({ status: "success", success: "Documents uploaded." })
+                        return res.status(config.success.insert.statusCode).send(config.success.insert)
                     })
                 }
             })
@@ -123,7 +124,7 @@ const uploadDocument = (req, res) => {
         }
         patientPersonalByUserId(userIdValue.id, function (personalData) {
             insertPatientDocumentData(i, personalData[0].patientId, function (result) {
-                return res.status(201).send("File uploaded successfully");
+                return res.status(config.success.insert.statusCode).send(config.success.insert)
             })
         })
         fs.unlinkSync(newfilepath)
@@ -160,7 +161,7 @@ const updatePersonalData = async (req, res, next) => {
             BMI = hwValue[0].BMI
         }
         updatePatientPersonalData(req, age, BMI, userIdvalue.id, async function (result) {
-            return res.status(200).send("Personal data updated successfully.")
+            return res.status(config.success.update.statusCode).send(config.success.update)
         })
     })
 }
@@ -170,7 +171,7 @@ const updateFamilyData = async (req, res) => {
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
     patientPersonalByUserId(userIdValue.id, async function (personalData) {
         updatePatientFamilyData(req, personalData[0].patientId, async function (result) {
-            return res.status(200).send("Family data updated successfully.")
+            return res.status(config.success.update.statusCode).send(config.success.update)
         })
     })
 }
@@ -179,11 +180,11 @@ const updateFamilyData = async (req, res) => {
 const deleteSelfProfile = (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     patientPersonalByUserId(userIdValue.id, async function (personalData) {
         if (!personalData[0]) {
             deleteUserData(userIdValue.id, async function (del) {
-                return res.status(200).send("Record deleted Successfully.")
+                return res.status(config.success.delete.statusCode).send(config.success.delete)
             })
         }
         else {
@@ -191,7 +192,7 @@ const deleteSelfProfile = (req, res) => {
                 deletePatientFamilyData(personalData[0].patientId, async function (del2) {
                     deletePatientPersonalData(personalData[0].patientId, async function (del3) {
                         deleteUserData(userIdValue.id, async function (del4) {
-                            return res.status(200).send("Record deleted Successfully")
+                            return res.status(config.success.delete.statusCode).send(config.success.delete)
                         })
                     })
                 })
@@ -206,7 +207,11 @@ const patientViewAppointments = (req, res) => {
 
     patientPersonalByUserId(userIdValue.id, async function (personalData) {
         patientAppointmentData(personalData[0].patientId, async function (result) {
-            return res.status(200).json(result);
+            return res.json({
+                StatusCode: config.success.retrive.statusCode,
+                Message: config.success.retrive.Message,
+                data: result
+            })
         })
     })
 }

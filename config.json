@@ -1,0 +1,78 @@
+{
+    "success": {
+        "create": {
+            "statusCode": 201,
+            "Code": "MCA0001",
+            "Message": "Created successfully"
+        },
+        "insert": {
+            "statusCode": 201,
+            "Code": "MCA0002",
+            "Message": "Data Inserted successfully"
+        },
+        "login": {
+            "statusCode": 200,
+            "Code": "MCA0003",
+            "Message": "Login successfully"
+        },
+        "update": {
+            "statusCode": 200,
+            "Code": "MCA0004",
+            "Message": "Updated successfully"
+        },
+        "retrive":{
+            "statusCode": 200,
+            "Code": "MCA0005",
+            "Message": "Data Retrived successfully"
+        },
+        "delete":{
+            "statusCode": 200,
+            "Code": "MCA0006",
+            "Message": "Data Deleted successfully"
+        }
+    },
+    "error":{
+        "allValues":{
+            "statusCode": 400,
+            "Code": "MCA0007",
+            "Message": "Please Provide all values"
+        },
+        "alreadyExist":{
+            "statusCode": 409,
+            "Code": "MCA0008",
+            "Message": "Already Exists"
+        },
+        "AlreadyAssigned":{
+            "statusCode": 409,
+            "Code": "MCA0009",
+            "Message": "Already Assigned"
+        },
+        "unAuthorized":{
+            "statusCode": 401,
+            "Code": "MCA0010",
+            "Message": "Unauthorized user"
+        },
+        "notFoundError":{
+            "statusCode": 404,
+            "Code": "MCA0011",
+            "Message": "User Not Found"
+        },
+        "patientNotFoundError":{
+            "statusCode": 404,
+            "Code": "MCA0012",
+            "Message": "Patient Not Found"
+        },
+        "doctorNotFoundError":{
+            "statusCode": 404,
+            "Code": "MCA0013",
+            "Message": "Doctor Not Found"
+        },
+        "forbidden":{
+            "statusCode": 403,
+            "Code": "MCA0014",
+            "Message": "Access Denied"
+        }
+    
+    }
+  
+}

@@ -6,6 +6,8 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import fsExtra from 'fs-extra'
 import OAuth2Data from '../credentials.json' assert {type: "json"}
+import config from '../config.json' assert {type: "json"}
+
 
 import { checkIsDoctor, doctorDataByUserId, fillDoctorData, allPatientsByDoctorId, updateDoctorPersonalData, insertMedicalReport, allReportsByPatientId } from '../models/doctorModel.js'
 import { patientPersonalByUserId, insertPatientPersonalData, patientMedicalDataByUserId, insertPatientMedicalData, viewPatientMedicalHistory, updatePatientMedicalData, viewMedicalHistoryByDoctor, ScheduleAppointments, viewAppointments, availablePatients } from '../models/patientModel.js';
@@ -65,21 +67,21 @@ const insertDoctorData = (req, res) => {
     checkIsDoctor(userIdValue.id, function (result) {
         if (result[0].isDoctor == 1) {
             if (!specialization || !licenseNo || !contactNo) {
-                return res.status(400).json({ status: "error", error: "please provide all values" })
+                return res.status(config.error.allValues.statusCode).send(config.error.allValues)
             }
             else {
                 doctorDataByUserId(userIdValue.id, function (doctorData) {
                     if (doctorData[0]) return res.status(409).json({ error: "Doctor data is already filled" })
                     else {
                         fillDoctorData(req, userIdValue.id, function (result) {
-                            return res.status(201).json({ status: "success", success: "Doctor data is filled." })
+                            return res.status(config.success.insert.statusCode).send(config.success.insert)
                         })
                     }
                 })
             }
         }
         else {
-            return res.status(401).send('Unauthorized user')
+            return res.status(config.error.unAuthorized.statusCode).send(config.error.unAuthorized)
         }
     })
 }
@@ -100,17 +102,19 @@ const createPatientByDoctor = (req, res) => {
     checkIsDoctor(userIdValue.id, function (result) {
         if (result[0].isDoctor == 1) {
             if (!mobNumber || !DOB || !weight || !height || !countryOfOrigin || !diseaseDescribe) {
-                return res.status(400).json({ status: "error", error: "please provide all values" })
+                return res.status(config.error.allValues.statusCode).send(config.error.allValues)
             }
             else {
                 userDataByUserId(id.id, function (userData) {
-                    if (!userData[0]) return res.status(404).json({ error: "User is not registered." })
+                    if (!userData[0]) return res.status(config.error.notFoundError.statusCode).send(config.error.notFoundError)
+
                     else {
                         patientPersonalByUserId(id.id, function (result) {
-                            if (result[0]) return res.status(409).json({ error: "Personal data is already filled" })
+                            if (result[0]) return res.status(config.error.alreadyExist.statusCode).send(config.error.alreadyExist)
+
                             else {
                                 insertPatientPersonalData(req, id.id, age, BMI, function (result1) {
-                                    return res.status(201).json({ status: "success", success: "Personal data is filled." })
+                                    return res.status(config.success.insert.statusCode).send(config.success.insert)
                                 })
                             }
                         })
@@ -119,7 +123,7 @@ const createPatientByDoctor = (req, res) => {
             }
         }
         else {
-            return res.status(401).send("Unauthorized user")
+            return res.status(config.error.unAuthorized.statusCode).send(config.error.unAuthorized)
         }
     })
 }
@@ -135,22 +139,24 @@ const insertMedicalDataByDoctor = (req, res) => {
     checkIsDoctor(userIdValue.id, function (result) {
         if (result[0].isDoctor == 1) {
             if (!appointmentDateTime || !reasonForAppointment) {
-                return res.status(400).json({ status: "error", error: "please provide all values" })
+                return res.status(config.error.allValues.statusCode).send(config.error.allValues)
             }
             else {
                 doctorDataByUserId(userIdValue.id, function (doctorData) {
                     if (!doctorData[0]) {
-                        return res.status(404).send("Fill doctor's details first")
+                        return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
                     }
                     else {
                         patientPersonalByUserId(id.id, function (personalData) {
-                            if (!personalData[0]) return res.status(404).json({ error: "Fill the patient's personal details first" })
+                            if (!personalData[0]) return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
+
                             else {
                                 patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (result) {
-                                    if (result[0]) return res.status(409).json({ error: "Patient is already assigned to you." })
+                                    if (result[0]) return res.status(config.error.AlreadyAssigned.statusCode).send(config.error.AlreadyAssigned)
+
                                     else {
                                         insertPatientMedicalData(req, personalData[0].patientId, doctorData[0].doctorId, function (result1) {
-                                            return res.status(201).json({ status: "success", success: "Patient is now assigned to you." })
+                                            return res.status(config.success.insert.statusCode).send(config.success.insert)
                                         })
                                     }
                                 })
@@ -161,7 +167,7 @@ const insertMedicalDataByDoctor = (req, res) => {
             }
         }
         else {
-            return res.status(401).send("Unauthorized user")
+            return res.status(config.error.unAuthorized.statusCode).send(config.error.unAuthorized)
         }
     })
 }
@@ -177,22 +183,22 @@ const updatePMDataByDoctor = async (req, res) => {
         if (result[0].isDoctor == 1) {
             doctorDataByUserId(userIdValue.id, function (doctorData) {
                 if (!doctorData[0]) {
-                    return res.status(404).send("Fill doctor details first")
+                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
                 }
                 else {
                     patientPersonalByUserId(id.id, function (personalData) {
                         if (!personalData[0]) {
-                            return res.status(404).send("No such patient exist")
+                            return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
                         }
                         else {
                             patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (patientData) {
                                 if (!patientData[0]) {
-                                    return res.status(403).send("Can't Update!! This patient is not assigned you.")
+                                    return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
                                 }
                                 else {
                                     viewPatientMedicalHistory(doctorData[0].doctorId, personalData[0].patientId, function (medicalHistory) {
                                         updatePatientMedicalData(req, medicalHistory[0].medicalHistory, doctorData[0].doctorId, personalData[0].patientId, function (results) {
-                                            return res.status(200).send("Medical Data updated successfully")
+                                            return res.status(config.success.update.statusCode).send(config.success.update)
                                         })
                                     })
                                 }
@@ -204,7 +210,7 @@ const updatePMDataByDoctor = async (req, res) => {
             })
         }
         else {
-            return res.status(401).send("Unauthorized user")
+            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
         }
     })
 }
@@ -217,15 +223,19 @@ const viewAssignedPatients = async (req, res) => {
 
             doctorDataByUserId(userIdValue.id, function (doctorData) {
                 if (!doctorData[0]) {
-                    return res.status(404).send("Fill doctor's details first")
+                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
                 } else {
                     allPatientsByDoctorId(doctorData[0].doctorId, async function (result) {
-                        return res.status(200).json(result)
+                        return res.json({
+                            StatusCode: config.success.retrive.statusCode,
+                            Message: config.success.retrive.Message,
+                            data: result
+                        })
                     })
                 }
             })
         } else {
-            return res.status(401).send("Unauthorized user");
+            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
         }
     })
 
@@ -238,16 +248,16 @@ const updateDoctorData = async (req, res) => {
         if (result[0].isDoctor == 1) {
             doctorDataByUserId(userIdValue.id, function (doctorData) {
                 if (!doctorData[0]) {
-                    return res.status(404).send("Cannot update fill doctor's details first")
+                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
                 }
                 else {
                     updateDoctorPersonalData(req, userIdValue.id, async function (result) {
-                        return res.status(200).send("Doctor personal data updated successfully.")
+                        return res.status(config.success.update.statusCode).send(config.success.update)
                     })
                 }
             })
         } else {
-            return res.status(401).send("Unauthorized user");
+            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
         }
     })
 }
@@ -280,19 +290,19 @@ const uploadMedicalReport = (req, res) => {
             doctorDataByUserId(userIdValue.id, function (doctorData) {
                 if (!doctorData[0]) {
                     fsExtra.emptyDir(__filePath)
-                    return res.status(404).send("Fill doctor details first")
+                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
                 }
                 else {
                     patientPersonalByUserId(id.id, function (personalData) {
                         if (!personalData[0]) {
                             fsExtra.emptyDir(__filePath)
-                            return res.status(404).send("No such patient exist")
+                            return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
                         }
                         else {
                             patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (patientData) {
                                 if (!patientData[0]) {
                                     fsExtra.emptyDir(__filePath)
-                                    return res.status(403).send("This patient is not assigned you.")
+                                    return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
 
                                 }
                                 else {
@@ -321,7 +331,7 @@ const uploadMedicalReport = (req, res) => {
                                             throw err
                                         }
                                         insertMedicalReport(i, doctorData[0].doctorId, personalData[0].patientId, function (result) {
-                                            res.status(201).send("Report uploaded successfully");
+                                            return res.status(config.success.insert.statusCode).send(config.success.insert)
                                         })
                                         fs.unlinkSync(file1)
                                     }
@@ -334,7 +344,7 @@ const uploadMedicalReport = (req, res) => {
             })
         } else {
             fsExtra.emptyDir(__filePath)
-            return res.status(401).send("Unauthorized user");
+            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
         }
     })
 
@@ -348,20 +358,24 @@ const viewPatientReports = async (req, res) => {
         if (result[0].isDoctor == 1) {
             doctorDataByUserId(userIdValue.id, function (doctorData) {
                 if (!doctorData[0]) {
-                    return res.status(404).send("Fill doctor's details first")
+                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
                 } else {
                     patientPersonalByUserId(id.id, function (personalData) {
                         if (!personalData[0]) {
-                            return res.status(404).send("No such patient exist")
+                            return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
                         }
                         else {
                             patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (patientData) {
                                 if (!patientData[0]) {
-                                    return res.status(403).send("This patient is not assigned you.")
+                                    return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
                                 }
                                 else {
                                     allReportsByPatientId(personalData[0].patientId, doctorData[0].doctorId, function (result) {
-                                        return res.status(200).json(result)
+                                        return res.json({
+                                            StatusCode: config.success.retrive.statusCode,
+                                            Message: config.success.retrive.Message,
+                                            data: result
+                                        })
                                     })
                                 }
                             })
@@ -371,7 +385,7 @@ const viewPatientReports = async (req, res) => {
             })
         }
         else {
-            return res.send("Unauthorized user");
+            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
         }
     })
 }
@@ -384,17 +398,21 @@ const viewAppointmentByDoctor = async (req, res) => {
         if (result[0].isDoctor == 1) {
             doctorDataByUserId(userIdValue.id, function (doctorData) {
                 if (!doctorData[0]) {
-                    return res.status(404).send("Fill doctor details first")
+                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
                 }
                 else {
                     viewAppointments(doctorData[0].doctorId, function (result) {
-                        return res.status(200).json({ result })
+                        return res.json({
+                            StatusCode: config.success.retrive.statusCode,
+                            Message: config.success.retrive.Message,
+                            data: result
+                        })
                     })
                 }
             })
         }
         else {
-            return res.status(401).send("Unauthorized user")
+            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
         }
     })
 }
@@ -406,12 +424,16 @@ const availablePatientsForAppointment = async (req, res) => {
         if (result[0].isDoctor == 1) {
 
             availablePatients(function (result) {
-                return res.status(200).json({ result })
+                return res.json({
+                    StatusCode: config.success.retrive.statusCode,
+                    Message: config.success.retrive.Message,
+                    data: result
+                })
             })
 
         }
         else {
-            return res.status(401).send("Unauthorized user")
+            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
         }
     })
 }
@@ -424,17 +446,21 @@ const viewMedicalHistory = async (req, res) => {
         if (result[0].isDoctor == 1) {
             doctorDataByUserId(userIdValue.id, function (doctorData) {
                 if (!doctorData[0]) {
-                    return res.status(404).send("Fill doctor details first")
+                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
                 }
                 else {
                     viewMedicalHistoryByDoctor(doctorData[0].doctorId, function (result) {
-                        return res.status(200).json({ result })
+                        return res.json({
+                            StatusCode: config.success.retrive.statusCode,
+                            Message: config.success.retrive.Message,
+                            data: result
+                        })
                     })
                 }
             })
         }
         else {
-            return res.status(401).send("Unauthorized user")
+            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
         }
     })
 }
@@ -450,21 +476,21 @@ const ScheduleAppointmentsByDoctor = async (req, res) => {
         if (result[0].isDoctor == 1) {
             doctorDataByUserId(userIdValue.id, function (doctorData) {
                 if (!doctorData[0]) {
-                    return res.status(404).send("Fill doctor details first")
+                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
                 }
                 else {
                     patientPersonalByUserId(id.id, function (personalData) {
                         if (!personalData[0]) {
-                            return res.status(404).send("No such patient exist")
+                            return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
                         }
                         else {
                             patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (patientData) {
                                 if (!patientData[0]) {
-                                    return res.status(403).send("Can't Update!! This patient is not assigned you.")
+                                    return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
                                 }
                                 else {
                                     ScheduleAppointments(req, doctorData[0].doctorId, personalData[0].patientId, function (results) {
-                                        return res.status(200).send("Medical Data updated successfully")
+                                        return res.status(config.success.update.statusCode).send(config.success.update)
                                     })
                                 }
                             })
@@ -475,9 +501,9 @@ const ScheduleAppointmentsByDoctor = async (req, res) => {
             })
         }
         else {
-            return res.status(401).send("Unauthorized user")
+            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
         }
     })
 }
 
-export { getAuthURL,getAccessToken,insertDoctorData, createPatientByDoctor, insertMedicalDataByDoctor, viewAssignedPatients, updateDoctorData, uploadReport, uploadMedicalReport, viewPatientReports, updatePMDataByDoctor, viewMedicalHistory, ScheduleAppointmentsByDoctor, viewAppointmentByDoctor, availablePatientsForAppointment }
+export { getAuthURL, getAccessToken, insertDoctorData, createPatientByDoctor, insertMedicalDataByDoctor, viewAssignedPatients, updateDoctorData, uploadReport, uploadMedicalReport, viewPatientReports, updatePMDataByDoctor, viewMedicalHistory, ScheduleAppointmentsByDoctor, viewAppointmentByDoctor, availablePatientsForAppointment }

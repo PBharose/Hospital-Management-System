@@ -14,7 +14,7 @@ router.route('/view-medical-history').get(authenticateUser,viewMedicalHistory)
 router.route('/schedule-appointments').patch(authenticateUser,ScheduleAppointmentsByDoctor)
 router.route('/view-appointments').get(authenticateUser,viewAppointmentByDoctor)
 
-router.route('/available-patients-for-Appointment').get(authenticateUser,availablePatientsForAppointment)
+router.route('/available-patients-for-appointment').get(authenticateUser,availablePatientsForAppointment)
 
 router.route('/view-assigned-patients').get(authenticateUser,viewAssignedPatients)
 

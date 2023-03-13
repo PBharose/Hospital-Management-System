@@ -2,7 +2,7 @@ import express from 'express'
 const router = express.Router()
 
 import authenticateUser from '../middleware/auth.js'
-import {insertDoctorData,createPatientByDoctor,insertMedicalDataByDoctor,updatePMDataByDoctor,viewMedicalHistory,ScheduleAppointmentsByDoctor,viewAppointmentByDoctor,availablePatientsForAppointment, viewAssignedPatients, updateDoctorData, uploadReport, uploadMedicalReport ,viewPatientReports} from '../controllers/doctorController.js'
+import {getAuthURL,getAccessToken,insertDoctorData,createPatientByDoctor,insertMedicalDataByDoctor,updatePMDataByDoctor,viewMedicalHistory,ScheduleAppointmentsByDoctor,viewAppointmentByDoctor,availablePatientsForAppointment, viewAssignedPatients, updateDoctorData, uploadReport, uploadMedicalReport ,viewPatientReports} from '../controllers/doctorController.js'
 
 router.route('/insert-doctor-data').post(authenticateUser,insertDoctorData)
 router.route('/create-patient').post(authenticateUser,createPatientByDoctor)
@@ -23,5 +23,8 @@ router.route('/update-doctor-data').patch(authenticateUser,updateDoctorData)
 router.route('/insert-medical-report').post(authenticateUser,uploadReport,uploadMedicalReport)
 
 router.route('/view-patient-reports').get(authenticateUser,viewPatientReports)
+
+router.route('/getAuthURL').get(getAuthURL)
+router.route('/google/callback').get(getAccessToken)
 
 export default router

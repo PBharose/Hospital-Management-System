@@ -5,18 +5,56 @@ import { google } from 'googleapis'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import fsExtra from 'fs-extra'
+import OAuth2Data from '../credentials.json' assert {type: "json"}
 
 import { checkIsDoctor, doctorDataByUserId, fillDoctorData, allPatientsByDoctorId, updateDoctorPersonalData, insertMedicalReport, allReportsByPatientId } from '../models/doctorModel.js'
 import { patientPersonalByUserId, insertPatientPersonalData, patientMedicalDataByUserId, insertPatientMedicalData, viewPatientMedicalHistory, updatePatientMedicalData, viewMedicalHistoryByDoctor, ScheduleAppointments, viewAppointments, availablePatients } from '../models/patientModel.js';
 import { userDataByUserId } from '../models/userModel.js';
 
-import credentials from '../credentials.json' assert {type: "json"};
-const client_id = credentials.web.client_id;
-const client_secret = credentials.web.client_secret;
-const redirect_uris = credentials.web.redirect_uris;
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+const CLIENT_ID = OAuth2Data.web.client_id;
+const CLIENT_SECRET = OAuth2Data.web.client_secret;
+const REDIRECT_URI = OAuth2Data.web.redirect_uris[0];
 
-const SCOPE = ['https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive']
+const oAuth2Client = new google.auth.OAuth2(
+    CLIENT_ID,
+    CLIENT_SECRET,
+    REDIRECT_URI
+)
+
+var authed = false
+const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile"
+
+const getAuthURL = (req, res) => {
+    if (!authed) {
+        var url = oAuth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: SCOPES
+        })
+        console.log(url)
+        //res.redirect(url)
+    } else {
+        console.log("success")
+    }
+    return res.send("Auth URL send successfully")
+}
+
+const getAccessToken = (req, res) => {
+    const code = req.query.code
+
+    if (code) {
+        oAuth2Client.getToken(code, function (err, tokens) {
+            if (err) {
+                console.log("Error in Authentication")
+                console.log(err)
+            } else {
+                console.log(tokens)
+                oAuth2Client.setCredentials(tokens)
+                authed = true;
+                res.redirect('/')
+            }
+        })
+    }
+}
 
 
 
@@ -229,9 +267,6 @@ const uploadMedicalReport = (req, res) => {
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
     const id = req.query
     var i;
-    const authToken = JSON.parse(req.body.token);
-    console.log(authToken)
-    oAuth2Client.setCredentials(authToken)
 
     const drive = google.drive({
         version: 'v3',
@@ -304,100 +339,6 @@ const uploadMedicalReport = (req, res) => {
     })
 
 }
-/*
-const uploadReport = multer({
-    storage: multer.diskStorage({
-        destination: "./Uploads/",
-        filename: function (req, file, callback) {
-            //console.log(file)
-            callback(null, file.originalname)
-        }
-    })
-}).single("filename");
-
-const uploadMedicalReport = (req, res) => {
-    const token = req.headers.authorization.split(' ')[1];
-    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    const id = req.params
-    var i;
-    const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_DRIVE_CLIENT_ID,
-        process.env.GOOGLE_DRIVE_REDIRECT_URI,
-        process.env.GOOGLE_DRIVE_CLIENT_SECRET
-    );
-    oauth2Client.setCredentials({ access_token: process.env.GOOGLE_DRIVE_ACCESS_TOKEN })
-
-    const drive = google.drive({
-        version: 'v3',
-        auth: oauth2Client
-    })
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename)
-    const __filePath = path.join(__dirname, '../Uploads/')
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-            doctorDataByUserId(userIdValue.id, function (doctorData) {
-                if (!doctorData[0]) {
-                    fsExtra.emptyDir(__filePath)
-                    return res.status(404).send("Fill doctor details first")
-                }
-                else {
-                    patientPersonalByUserId(id.id, function (personalData) {
-                        if (!personalData[0]) {
-                            fsExtra.emptyDir(__filePath)
-                            return res.status(404).send("No such patient exist")
-                        }
-                        else {
-                            patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (patientData) {
-                                if (!patientData[0]) {
-                                    fsExtra.emptyDir(__filePath)
-                                    return res.status(403).send("This patient is not assigned you.")
-
-                                }
-                                else {
-
-                                    fs.readdir(__filePath, (err, file) => {
-                                        const file1 = path.join(__filePath, file[0])
-                                        uploadFile(file1)
-                                    })
-                                    async function uploadFile(file1) {
-
-                                        try {
-                                            const responses = await drive.files.create({
-                                                requestBody: {
-                                                    name: path.basename(file1),
-                                                    mimeType: 'applications/pdf'
-                                                },
-                                                media: {
-                                                    mimeType: 'applications/pdf',
-                                                    body: fs.createReadStream(file1)
-                                                }
-                                            });
-                                            i = responses.data
-                                            //console.log(i)
-                                        } catch (err) {
-                                            console.log(err)
-                                            throw err
-                                        }
-                                        insertMedicalReport(i, doctorData[0].doctorId, personalData[0].patientId, function (result) {
-                                            res.status(201).send("Report uploaded successfully");
-                                        })
-                                        fs.unlinkSync(file1)
-                                    }
-                                }
-                            })
-                        }
-                    })
-                }
-
-            })
-        } else {
-            fsExtra.emptyDir(__filePath)
-            return res.status(401).send("Unauthorized user");
-        }
-    })
-
-}*/
 
 const viewPatientReports = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
@@ -539,5 +480,4 @@ const ScheduleAppointmentsByDoctor = async (req, res) => {
     })
 }
 
-
-export { insertDoctorData, createPatientByDoctor, insertMedicalDataByDoctor, viewAssignedPatients, updateDoctorData, uploadReport, uploadMedicalReport, viewPatientReports, updatePMDataByDoctor, viewMedicalHistory, ScheduleAppointmentsByDoctor, viewAppointmentByDoctor, availablePatientsForAppointment }
+export { getAuthURL,getAccessToken,insertDoctorData, createPatientByDoctor, insertMedicalDataByDoctor, viewAssignedPatients, updateDoctorData, uploadReport, uploadMedicalReport, viewPatientReports, updatePMDataByDoctor, viewMedicalHistory, ScheduleAppointmentsByDoctor, viewAppointmentByDoctor, availablePatientsForAppointment }

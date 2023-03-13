@@ -23,7 +23,7 @@ const registerUser = async (req, res) => {
                     const randomToken = randomstring.generate()
                     let content = '<p> Hi ' + req.body.firstName + ', Please <a href = "http://localhost:4000/mail-verification?token=' + randomToken + '"> Verify your email!!</a>'
                     sendMail(req.body.emailId, mailSubject, content);
-                    return res.status(200).json({ status: "success", success: "User registered successfully!!" })
+                   // return res.status(200).json({ status: "success", success: "User registered successfully!!" })
                 })
             }
         })

@@ -1,5 +1,6 @@
+import config from '../config.json' assert {type: "json"}
+
 const auth = async(req,res,next) => {
-    
     try{
         if(
             !req.headers.authorization ||
@@ -12,7 +13,7 @@ const auth = async(req,res,next) => {
         }
         next();
     }catch(error){
-        console.log(error.message)
+       return res.status(config.error.internalServerError.statusCode).send(config.error.internalServerError)
     }
 }
 

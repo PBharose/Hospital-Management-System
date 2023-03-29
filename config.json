@@ -29,50 +29,79 @@
             "statusCode": 200,
             "Code": "MCA0006",
             "Message": "Data Deleted successfully"
+        },
+        "download":{
+                "statusCode": 200,
+                "Code": "MCA0007",
+                "Message": "File downloaded"
         }
     },
     "error":{
         "allValues":{
             "statusCode": 400,
-            "Code": "MCA0007",
+            "Code": "MCA0008",
             "Message": "Please Provide all values"
         },
         "alreadyExist":{
             "statusCode": 409,
-            "Code": "MCA0008",
+            "Code": "MCA0009",
             "Message": "Already Exists"
         },
-        "AlreadyAssigned":{
+        "alreadyAssigned":{
             "statusCode": 409,
-            "Code": "MCA0009",
+            "Code": "MCA0010",
             "Message": "Already Assigned"
         },
         "unAuthorized":{
             "statusCode": 401,
-            "Code": "MCA0010",
+            "Code": "MCA0011",
             "Message": "Unauthorized user"
         },
-        "notFoundError":{
+        "userNotFoundError":{
             "statusCode": 404,
-            "Code": "MCA0011",
+            "Code": "MCA0012",
             "Message": "User Not Found"
         },
         "patientNotFoundError":{
             "statusCode": 404,
-            "Code": "MCA0012",
+            "Code": "MCA0013",
             "Message": "Patient Not Found"
         },
         "doctorNotFoundError":{
             "statusCode": 404,
-            "Code": "MCA0013",
+            "Code": "MCA0014",
             "Message": "Doctor Not Found"
         },
         "forbidden":{
             "statusCode": 403,
-            "Code": "MCA0014",
+            "Code": "MCA0015",
             "Message": "Access Denied"
+        },
+        "fileNotFound":{
+            "statusCode": 404,
+            "Code": "MCA0016",
+            "Message": "File Not Found"
+        },
+        "internalServerError":{
+            "statusCode": 500,
+            "Code": "MCA0017",
+            "Message": "Internal server error"
+        },
+        "appointmentNotFound":{
+            "statusCode": 404,
+            "Code": "MCA0018",
+            "Message": "Appointment Id Not Found"
+        },
+        "invalid":{
+            "statusCode": 404,
+            "Code": "MCA0019",
+            "Message": "Invalid data"
+        },
+        "notFoundError":{
+                "statusCode": 404,
+                "Code": "MCA0020",
+                "Message": "Record not found"
         }
-    
     }
   
 }

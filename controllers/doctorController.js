@@ -1,89 +1,77 @@
 import jwt from 'jsonwebtoken'
 import multer from 'multer'
-import path from 'path'
-import { google } from 'googleapis'
+import path, { resolve } from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import fsExtra from 'fs-extra'
-import OAuth2Data from '../credentials.json' assert {type: "json"}
+import open from 'open'
+import sendMail from '../helpers/sendMail.js'
 import config from '../config.json' assert {type: "json"}
-
-
-import { checkIsDoctor, doctorDataByUserId, fillDoctorData, allPatientsByDoctorId, updateDoctorPersonalData, insertMedicalReport, allReportsByPatientId } from '../models/doctorModel.js'
-import { patientPersonalByUserId, insertPatientPersonalData, patientMedicalDataByUserId, insertPatientMedicalData, viewPatientMedicalHistory, updatePatientMedicalData, viewMedicalHistoryByDoctor, ScheduleAppointments, viewAppointments, availablePatients } from '../models/patientModel.js';
 import { userDataByUserId } from '../models/userModel.js';
+import { tokens, authorizationUrl, oAuth2Client, drive, downloadFile } from '../models/fileModel.js'
+import {
+    doctorDataByUserId,
+    insertDoctorsData,
+    allPatientsByDoctorId,
+    updateDoctorPersonalData,
+    insertMedicalReport,
+    allReportsByPatientId,
+    insertPrescription,
+    viewPatientMedicalHistory,
+    updatePatientMedicalData,
+    doctorDataBydoctorId
+} from '../models/doctorModel.js'
 
-const CLIENT_ID = OAuth2Data.web.client_id;
-const CLIENT_SECRET = OAuth2Data.web.client_secret;
-const REDIRECT_URI = OAuth2Data.web.redirect_uris[0];
-
-const oAuth2Client = new google.auth.OAuth2(
-    CLIENT_ID,
-    CLIENT_SECRET,
-    REDIRECT_URI
-)
-
-var authed = false
-const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile"
-
-const getAuthURL = (req, res) => {
-    if (!authed) {
-        var url = oAuth2Client.generateAuthUrl({
-            access_type: 'offline',
-            scope: SCOPES
-        })
-        console.log(url)
-        //res.redirect(url)
-    } else {
-        console.log("success")
-    }
-    return res.send("Auth URL send successfully")
-}
-
-const getAccessToken = (req, res) => {
-    const code = req.query.code
-
-    if (code) {
-        oAuth2Client.getToken(code, function (err, tokens) {
-            if (err) {
-                console.log("Error in Authentication")
-                console.log(err)
-            } else {
-                console.log(tokens)
-                oAuth2Client.setCredentials(tokens)
-                authed = true;
-                res.redirect('/')
-            }
-        })
-    }
-}
-
+import {
+    patientPersonalByUserId,
+    insertPatientPersonalData,
+    patientMedicalDataByUserId,
+    insertPatientMedicalData,
+    viewMedicalHistoryByDoctor,
+    insertUnApprovedAppointments,
+    insertApprovedAppointments,
+    viewAppointments,
+    patientMedicalReportByUserId,
+    appointmentsData,
+    patientAppointments,
+    patientPersonalByPatientId
+} from '../models/patientModel.js';
 
 
 const insertDoctorData = (req, res) => {
     const { specialization, licenseNo, contactNo } = req.body;
     const token = req.headers.authorization.split(' ')[1]
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-            if (!specialization || !licenseNo || !contactNo) {
-                return res.status(config.error.allValues.statusCode).send(config.error.allValues)
+
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                if (!specialization || !licenseNo || !contactNo) {
+                    throw config.error.allValues
+                }
+                else {
+                    return doctorDataByUserId(userIdValue.id)
+                }
             }
             else {
-                doctorDataByUserId(userIdValue.id, function (doctorData) {
-                    if (doctorData[0]) return res.status(409).json({ error: "Doctor data is already filled" })
-                    else {
-                        fillDoctorData(req, userIdValue.id, function (result) {
-                            return res.status(config.success.insert.statusCode).send(config.success.insert)
-                        })
-                    }
-                })
+                throw config.error.forbidden
             }
-        }
-        else {
-            return res.status(config.error.unAuthorized.statusCode).send(config.error.unAuthorized)
-        }
-    })
+        })
+        .then((doctorData) => {
+            if (doctorData[0]) {
+                throw config.error.alreadyExist
+            }
+            else {
+                return insertDoctorsData(req, userIdValue.id)
+            }
+        })
+        .then((result) => {
+            throw config.success.insert
+
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
 }
 
 
@@ -97,170 +85,124 @@ const createPatientByDoctor = (req, res) => {
 
     const token = req.headers.authorization.split(' ')[1]
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    const id = req.query  //accept userId
+    const userId = req.query.userId  //accept userId
 
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-            if (!mobNumber || !DOB || !weight || !height || !countryOfOrigin || !diseaseDescribe) {
-                return res.status(config.error.allValues.statusCode).send(config.error.allValues)
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                if (!mobNumber || !DOB || !weight || !height || !countryOfOrigin || !diseaseDescribe) {
+                    throw config.error.allValues
+                }
+                else {
+                    return userDataByUserId(userId)
+                }
             }
             else {
-                userDataByUserId(id.id, function (userData) {
-                    if (!userData[0]) return res.status(config.error.notFoundError.statusCode).send(config.error.notFoundError)
-
-                    else {
-                        patientPersonalByUserId(id.id, function (result) {
-                            if (result[0]) return res.status(config.error.alreadyExist.statusCode).send(config.error.alreadyExist)
-
-                            else {
-                                insertPatientPersonalData(req, id.id, age, BMI, function (result1) {
-                                    return res.status(config.success.insert.statusCode).send(config.success.insert)
-                                })
-                            }
-                        })
-                    }
-                })
+                throw config.error.forbidden
             }
-        }
-        else {
-            return res.status(config.error.unAuthorized.statusCode).send(config.error.unAuthorized)
-        }
-    })
+        })
+        .then((user) => {
+            if (!user[0] || user[0].isDeleted == 1) {
+                throw config.error.notFoundError
+            }
+            else {
+                return patientPersonalByUserId(userId)
+            }
+        })
+        .then((personalData) => {
+            if (personalData[0]) {
+                throw config.error.alreadyExist
+            }
+            else {
+                return insertPatientPersonalData(req, userId, age, BMI)
+            }
+        })
+        .then((result) => {
+            throw config.success.insert
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
 }
 
 //INSERT MEDICAL DATA OF PATIENTS BY PASSING THEIR USERID VIA DOCTOR
 const insertMedicalDataByDoctor = (req, res) => {
-    const { medicalHistory, treatmentPlan, appointmentDateTime, reasonForAppointment } = req.body;
+    const { medicalHistory } = req.body;
 
     const token = req.headers.authorization.split(' ')[1]
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    const id = req.query //accept userid
+    const patientUserId = req.query.patientUserId //accept userid
 
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-            if (!appointmentDateTime || !reasonForAppointment) {
-                return res.status(config.error.allValues.statusCode).send(config.error.allValues)
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                if (!medicalHistory) {
+                    throw config.error.allValues
+                }
+                else {
+                    return userDataByUserId(patientUserId)
+                }
             }
             else {
-                doctorDataByUserId(userIdValue.id, function (doctorData) {
-                    if (!doctorData[0]) {
-                        return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
-                    }
-                    else {
-                        patientPersonalByUserId(id.id, function (personalData) {
-                            if (!personalData[0]) return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
-
-                            else {
-                                patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (result) {
-                                    if (result[0]) return res.status(config.error.AlreadyAssigned.statusCode).send(config.error.AlreadyAssigned)
-
-                                    else {
-                                        insertPatientMedicalData(req, personalData[0].patientId, doctorData[0].doctorId, function (result1) {
-                                            return res.status(config.success.insert.statusCode).send(config.success.insert)
-                                        })
-                                    }
-                                })
-                            }
-                        })
-                    }
-                })
+                throw config.error.forbidden
             }
-        }
-        else {
-            return res.status(config.error.unAuthorized.statusCode).send(config.error.unAuthorized)
-        }
-    })
+        })
+        .then((patientUserData) => {
+            if (!patientUserData[0] || patientUserData[0].isDeleted == 1) {
+                throw config.error.patientNotFoundError
+            }
+            else {
+                return Promise.all([userDataByUserId(userIdValue.id), patientUserData])
+            }
+        })
+        .then(([doctorUserData, patientUserData]) => {
+            if (!doctorUserData[0] || doctorUserData[0].isDeleted == 1) {
+                throw config.error.doctorNotFoundError
+            }
+            else {
+                return Promise.all([patientPersonalByUserId(patientUserId), patientUserData, doctorUserData])
+            }
+        })
+        .then(([personalData, patientUserData, doctorUserData]) => {
+            if (!personalData[0]) {
+                throw config.error.patientNotFoundError
+            }
+            else {
+                return Promise.all([doctorDataByUserId(userIdValue.id), personalData, patientUserData, doctorUserData])
+            }
+        })
+        .then(([doctorData, personalData, patientUserData, doctorUserData]) => {
+            if (!doctorData[0]) {
+                throw config.error.doctorNotFoundError
+            }
+            else {
+                return Promise.all([patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId), personalData, doctorData, patientUserData, doctorUserData])
+            }
+        })
+        .then(([medicalData, personalData, doctorData, patientUserData, doctorUserData]) => {
+            if (medicalData[0]) {
+                throw config.error.alreadyAssigned
+            }
+            else {
+                return Promise.all([insertPatientMedicalData(req, personalData[0].patientId, doctorData[0].doctorId), patientUserData, doctorUserData])
+            }
+        })
+        .then(([result, patientUserData, doctorUserData]) => {
+            if (result.affectedRows != 0) {
+                let mailSubject = 'Doctor Assigned'
+                let content = '<p> Hi ' + patientUserData[0].firstName + ' ' + patientUserData[0].lastName + '<p> You are successfully assigned to Dr.' + doctorUserData[0].firstName + ' ' + doctorUserData[0].lastName + '.'
+                sendMail(patientUserData[0].emailId, mailSubject, content);
+                throw config.success.insert
+            }
+            else {
+                throw config.error.internalServerError
+            }
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
 }
 
-
-//UPDATE PATIENTS MEDICAL DATA BY DOCTOR
-const updatePMDataByDoctor = async (req, res) => {
-    const token = req.headers.authorization.split(' ')[1];
-    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    const id = req.query  //accept userId
-
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-            doctorDataByUserId(userIdValue.id, function (doctorData) {
-                if (!doctorData[0]) {
-                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
-                }
-                else {
-                    patientPersonalByUserId(id.id, function (personalData) {
-                        if (!personalData[0]) {
-                            return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
-                        }
-                        else {
-                            patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (patientData) {
-                                if (!patientData[0]) {
-                                    return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-                                }
-                                else {
-                                    viewPatientMedicalHistory(doctorData[0].doctorId, personalData[0].patientId, function (medicalHistory) {
-                                        updatePatientMedicalData(req, medicalHistory[0].medicalHistory, doctorData[0].doctorId, personalData[0].patientId, function (results) {
-                                            return res.status(config.success.update.statusCode).send(config.success.update)
-                                        })
-                                    })
-                                }
-                            })
-                        }
-                    })
-                }
-
-            })
-        }
-        else {
-            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-        }
-    })
-}
-
-const viewAssignedPatients = async (req, res) => {
-    const token = req.headers.authorization.split(' ')[1];
-    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    checkIsDoctor(userIdValue.id, async function (result) {
-        if (result[0].isDoctor == 1) {
-
-            doctorDataByUserId(userIdValue.id, function (doctorData) {
-                if (!doctorData[0]) {
-                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
-                } else {
-                    allPatientsByDoctorId(doctorData[0].doctorId, async function (result) {
-                        return res.json({
-                            StatusCode: config.success.retrive.statusCode,
-                            Message: config.success.retrive.Message,
-                            data: result
-                        })
-                    })
-                }
-            })
-        } else {
-            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-        }
-    })
-
-}
-
-const updateDoctorData = async (req, res) => {
-    const token = req.headers.authorization.split(' ')[1];
-    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    checkIsDoctor(userIdValue.id, async function (result) {
-        if (result[0].isDoctor == 1) {
-            doctorDataByUserId(userIdValue.id, function (doctorData) {
-                if (!doctorData[0]) {
-                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
-                }
-                else {
-                    updateDoctorPersonalData(req, userIdValue.id, async function (result) {
-                        return res.status(config.success.update.statusCode).send(config.success.update)
-                    })
-                }
-            })
-        } else {
-            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-        }
-    })
-}
 
 const uploadReport = multer({
     storage: multer.diskStorage({
@@ -272,238 +214,600 @@ const uploadReport = multer({
     })
 }).single("filename");
 
-const uploadMedicalReport = (req, res) => {
+const uploadMedicalReport = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    const id = req.query
+    const patientUserId = req.query.patientUserId
     var i;
 
-    const drive = google.drive({
-        version: 'v3',
-        auth: oAuth2Client
-    })
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename)
-    const __filePath = path.join(__dirname, '../Uploads/')
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-            doctorDataByUserId(userIdValue.id, function (doctorData) {
-                if (!doctorData[0]) {
-                    fsExtra.emptyDir(__filePath)
-                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
+    await open(authorizationUrl);
+
+    setTimeout(() => { oAuth2Client.setCredentials(tokens.tokens); }, 4000)
+    setTimeout(() => {
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename)
+        const __filePath = path.join(__dirname, '../Uploads/')
+
+        userDataByUserId(userIdValue.id)
+            .then((userData) => {
+                if (userData[0].isDoctor == 1) {
+                    return doctorDataByUserId(userIdValue.id)
                 }
                 else {
-                    patientPersonalByUserId(id.id, function (personalData) {
-                        if (!personalData[0]) {
-                            fsExtra.emptyDir(__filePath)
-                            return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
+                    fsExtra.emptyDir(__filePath)
+                    throw config.error.forbidden
+                }
+            })
+            .then((doctorData) => {
+                if (!doctorData[0]) {
+                    fsExtra.emptyDir(__filePath)
+                    throw config.error.doctorNotFoundError
+                }
+                else {
+                    return Promise.all([userDataByUserId(patientUserId), doctorData])
+                }
+            })
+            .then(([patientUserData, doctorData]) => {
+                if (!patientUserData[0] || patientUserData[0].isDeleted == 1) {
+                    fsExtra.emptyDir(__filePath)
+                    throw config.error.notFoundError
+                }
+                else {
+                    return Promise.all([patientPersonalByUserId(patientUserId), doctorData])
+                }
+            })
+            .then(([personalData, doctorData]) => {
+                if (!personalData[0]) {
+                    fsExtra.emptyDir(__filePath)
+                    throw config.error.patientNotFoundError
+                }
+                else {
+                    return Promise.all([patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId), personalData, doctorData])
+                }
+            })
+            .then(([medicalData, personalData, doctorData]) => {
+                if (!medicalData[0]) {
+                    fsExtra.emptyDir(__filePath)
+                    throw config.error.forbidden
+                }
+                else {
+                    fs.readdir(__filePath, (err, file) => {
+                        const file1 = path.join(__filePath, file[0])
+                        uploadFile(file1)
+                    })
+                    async function uploadFile(file1) {
+                        try {
+                            const responses = await drive.files.create({
+                                requestBody: {
+                                    name: path.basename(file1),
+                                    mimeType: 'applications/pdf'
+                                },
+                                media: {
+                                    mimeType: 'applications/pdf',
+                                    body: fs.createReadStream(file1)
+                                }
+                            });
+                            i = responses.data
+                        } catch (err) {
+                            console.log(err)
+                            throw err
                         }
-                        else {
-                            patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (patientData) {
-                                if (!patientData[0]) {
-                                    fsExtra.emptyDir(__filePath)
-                                    return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
+                        fs.unlinkSync(file1)
+                        return insertMedicalReport(i, doctorData[0].doctorId, personalData[0].patientId)
+                    }
+                }
+            })
+            .then((result) => {
+                throw config.success.insert
+            })
+            .catch((error) => {
+                return res.status(error.statusCode).send(error)
+            })
+    }, 5000)
+}
 
+
+//SCHEDULE APPOINTMENTS FOR EACH PATIENTS WHICH ARE ASSIGNED TO THEM BY PASSING THEIR USERID
+const insertAppointmentsByDoctor = async (req, res) => {
+    const token = req.headers.authorization.split(' ')[1];
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
+    const patientUserId = req.query.patientUserId  //accept userId
+
+    const { appointmentDateTime, reasonForAppointment } = req.body;
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                if (!appointmentDateTime || !reasonForAppointment) {
+                    throw config.error.allValues
+                }
+                else {
+                    return Promise.all([doctorDataByUserId(userIdValue.id), userData])
+                }
+            }
+            else {
+                throw config.error.forbidden
+            }
+        })
+        .then(([doctorData, userData]) => {
+            if (!doctorData[0]) {
+                throw config.error.doctorNotFoundError
+            }
+            else {
+                return Promise.all([userDataByUserId(patientUserId), doctorData, userData])
+            }
+        })
+        .then(([patientUserData, doctorData, userData]) => {
+            if (!patientUserData[0] || patientUserData[0].isDeleted == 1) {
+                throw config.error.notFoundError
+            }
+            else {
+                return Promise.all([patientPersonalByUserId(patientUserId), doctorData, userData])
+            }
+        })
+        .then(([personalData, doctorData, userData]) => {
+            if (!personalData[0]) {
+                throw config.error.patientNotFoundError
+            }
+            else {
+                return Promise.all([patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId), personalData, doctorData, userData])
+            }
+        })
+        .then(([medicalData, personalData, doctorData, userData]) => {
+            if (!medicalData[0]) {
+                throw config.error.forbidden
+            }
+            else {
+                return Promise.all([appointmentsData(req, personalData[0].patientId, doctorData[0].doctorId), personalData, doctorData, userData])
+            }
+        })
+        .then(([appointmentData, personalData, doctorData, userData]) => {
+            if (appointmentData[0]) {
+                throw config.error.alreadyExist
+            }
+            else {
+                if (userData[0].isAdmin == 1) {
+                    return insertApprovedAppointments(req, doctorData[0].doctorId, personalData[0].patientId)
+                }
+                else {
+                    return insertUnApprovedAppointments(req, doctorData[0].doctorId, personalData[0].patientId)
+                }
+            }
+        })
+        .then((result) => {
+            throw config.success.insert
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
+}
+
+
+const uploadPrescription = async (req, res) => {
+    const token = req.headers.authorization.split(' ')[1];
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
+    const appointmentId = req.query.appointmentId
+    var i;
+    var date_time = new Date()
+    await open(authorizationUrl);
+
+    setTimeout(() => { oAuth2Client.setCredentials(tokens.tokens); }, 4000)
+    setTimeout(() => {
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename)
+        const __filePath = path.join(__dirname, '../Uploads/')
+
+        userDataByUserId(userIdValue.id)
+            .then((userData) => {
+                if (userData[0].isDoctor == 1) {
+                    return patientAppointments(appointmentId)
+                }
+                else {
+                    fsExtra.emptyDir(__filePath)
+                    throw config.error.forbidden
+                }
+            })
+            .then((appointmentData) => {
+                if (appointmentData[0].prescription == null && appointmentData[0].appointmentDateTime < date_time && appointmentData[0].isApproved == 1) {
+                    fs.readdir(__filePath, (err, file) => {
+                        const file1 = path.join(__filePath, file[0])
+                        uploadFile(file1)
+                    })
+                    async function uploadFile(file1) {
+                        try {
+                            const responses = await drive.files.create({
+                                requestBody: {
+                                    name: path.basename(file1),
+                                    mimeType: 'applications/pdf'
+                                },
+                                media: {
+                                    mimeType: 'applications/pdf',
+                                    body: fs.createReadStream(file1)
                                 }
-                                else {
-
-                                    fs.readdir(__filePath, (err, file) => {
-                                        const file1 = path.join(__filePath, file[0])
-                                        uploadFile(file1)
-                                    })
-                                    async function uploadFile(file1) {
-
-                                        try {
-                                            const responses = await drive.files.create({
-                                                requestBody: {
-                                                    name: path.basename(file1),
-                                                    mimeType: 'applications/pdf'
-                                                },
-                                                media: {
-                                                    mimeType: 'applications/pdf',
-                                                    body: fs.createReadStream(file1)
-                                                }
-                                            });
-                                            i = responses.data
-                                            //console.log(i)
-                                        } catch (err) {
-                                            console.log(err)
-                                            throw err
-                                        }
-                                        insertMedicalReport(i, doctorData[0].doctorId, personalData[0].patientId, function (result) {
-                                            return res.status(config.success.insert.statusCode).send(config.success.insert)
-                                        })
-                                        fs.unlinkSync(file1)
-                                    }
-                                }
-                            })
+                            });
+                            i = responses.data
+                        } catch (err) {
+                            console.log(err)
+                            throw err
+                        }
+                        fs.unlinkSync(file1)
+                        insertPrescription(i, appointmentId)
+                    }
+                    return appointmentData
+                }
+                else {
+                    throw config.error.alreadyExist
+                }
+            })
+            .then((appointmentData) => {
+                return Promise.all([patientPersonalByPatientId(appointmentData[0].patientId), appointmentData])
+            })
+            .then(([patientData, appointmentData]) => {
+                return Promise.all([doctorDataBydoctorId(appointmentData[0].doctorId), patientData])
+            })
+            .then(([doctorData, patientData]) => {
+                return Promise.all([userDataByUserId(patientData[0].userId), doctorData])
+            })
+            .then(([patientUserData, doctorData]) => {
+                return Promise.all([userDataByUserId(doctorData[0].userId), patientUserData])
+            })
+            .then(([doctorUserData, patientUserData]) => {
+                setTimeout(async () => {
+                    await drive.permissions.create({
+                        fileId: i.id,
+                        requestBody: {
+                            role: "reader",
+                            type: "anyone"
                         }
                     })
-                }
-
+                    const link = await drive.files.get({
+                        fileId: i.id,
+                        fields: 'webViewLink, webContentLink',
+                    });
+                    let mailSubject = 'Download document'
+                    let content = '<p> Hi ' + patientUserData[0].firstName + ' ' + patientUserData[0].lastName + '<p> Your prescription is ' + link.data.webContentLink + ' uploaded by Dr.' + doctorUserData[0].firstName + ' ' + doctorUserData[0].lastName
+                    sendMail(patientUserData[0].emailId, mailSubject, content);
+                    return res.status(config.success.insert.statusCode).send(config.success.insert)
+                }, 5000)
             })
-        } else {
-            fsExtra.emptyDir(__filePath)
-            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-        }
-    })
+            .catch((error) => {
+                return res.status(error.statusCode).send(error)
+            })
+    }, 6000)
+}
 
+
+
+const updateDoctorData = async (req, res) => {
+    const token = req.headers.authorization.split(' ')[1];
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
+
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                return doctorDataByUserId(userIdValue.id)
+            }
+            else {
+                throw config.error.forbidden
+            }
+        })
+        .then((doctorData) => {
+            if (!doctorData[0]) {
+                throw config.error.doctorNotFoundError
+            }
+            else {
+                return updateDoctorPersonalData(req, userIdValue.id)
+            }
+        })
+        .then((result) => {
+            throw config.success.update
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
+}
+
+
+//UPDATE PATIENTS MEDICAL DATA BY DOCTOR
+const updatePMDataByDoctor = async (req, res) => {
+    const token = req.headers.authorization.split(' ')[1];
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
+    const patientUserId = req.query.patientUserId //accept userId
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                return doctorDataByUserId(userIdValue.id)
+            }
+            else {
+                throw config.error.forbidden
+            }
+        })
+        .then((doctorData) => {
+            if (!doctorData[0]) {
+                throw config.error.doctorNotFoundError
+            }
+            else {
+                return Promise.all([userDataByUserId(patientUserId), doctorData])
+            }
+        })
+        .then(([patientUserData, doctorData]) => {
+            if (!patientUserData[0] || patientUserData[0].isDeleted == 1) {
+                throw config.error.notFoundError
+            }
+            else {
+                return Promise.all([patientPersonalByUserId(patientUserId), doctorData])
+            }
+        })
+        .then(([personalData, doctorData]) => {
+            if (!personalData[0]) {
+                throw config.error.patientNotFoundError
+            }
+            else {
+                return Promise.all([patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId), personalData, doctorData])
+            }
+        })
+        .then(([medicalData, personalData, doctorData]) => {
+            if (!medicalData[0]) {
+                throw config.error.forbidden
+            }
+            else {
+                return Promise.all([viewPatientMedicalHistory(personalData[0].patientId, doctorData[0].doctorId), personalData, doctorData])
+            }
+        })
+        .then(([medicalHistory, personalData, doctorData]) => {
+            if (!medicalHistory[0]) {
+                throw config.error.invalid
+            }
+            else {
+                return updatePatientMedicalData(req, medicalHistory[0].medicalHistory, personalData[0].patientId, doctorData[0].doctorId)
+            }
+        })
+        .then((result) => {
+            throw config.success.update
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
+}
+
+const viewAssignedPatients = async (req, res) => {
+    const token = req.headers.authorization.split(' ')[1];
+    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                return doctorDataByUserId(userIdValue.id)
+            }
+            else {
+                throw config.error.forbidden
+            }
+        })
+        .then((doctorData) => {
+            if (!doctorData[0]) {
+                throw config.error.doctorNotFoundError
+            }
+            else {
+                return allPatientsByDoctorId(doctorData[0].doctorId)
+            }
+        })
+        .then((result) => {
+            return res.json({
+                StatusCode: config.success.retrive.statusCode,
+                Message: config.success.retrive.Message,
+                data: result
+            })
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
 }
 
 const viewPatientReports = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    const id = req.query;
-    checkIsDoctor(userIdValue.id, async function (result) {
-        if (result[0].isDoctor == 1) {
-            doctorDataByUserId(userIdValue.id, function (doctorData) {
-                if (!doctorData[0]) {
-                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
-                } else {
-                    patientPersonalByUserId(id.id, function (personalData) {
-                        if (!personalData[0]) {
-                            return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
-                        }
-                        else {
-                            patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (patientData) {
-                                if (!patientData[0]) {
-                                    return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-                                }
-                                else {
-                                    allReportsByPatientId(personalData[0].patientId, doctorData[0].doctorId, function (result) {
-                                        return res.json({
-                                            StatusCode: config.success.retrive.statusCode,
-                                            Message: config.success.retrive.Message,
-                                            data: result
-                                        })
-                                    })
-                                }
-                            })
-                        }
-                    })
-                }
+    const patientUserId = req.query.patientUserId;
+
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                return doctorDataByUserId(userIdValue.id)
+            }
+            else {
+                throw config.error.forbidden
+            }
+        })
+        .then((doctorData) => {
+            if (!doctorData[0]) {
+                throw config.error.doctorNotFoundError
+            }
+            else {
+                return Promise.all([userDataByUserId(patientUserId), doctorData])
+            }
+        })
+        .then(([patientUserData, doctorData]) => {
+            if (!patientUserData[0] || patientUserData[0].isDeleted == 1) {
+                throw config.error.notFoundError
+            }
+            else {
+                return Promise.all([patientPersonalByUserId(patientUserId), doctorData])
+            }
+        })
+        .then(([personalData, doctorData]) => {
+            if (!personalData[0]) {
+                throw config.error.patientNotFoundError
+            }
+            else {
+                return Promise.all([patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId), personalData, doctorData])
+            }
+        })
+        .then(([medicalData, personalData, doctorData]) => {
+            if (!medicalData[0]) {
+                throw config.error.forbidden
+            }
+            else {
+                return allReportsByPatientId(personalData[0].patientId, doctorData[0].doctorId)
+            }
+        })
+        .then((result) => {
+            return res.json({
+                StatusCode: config.success.retrive.statusCode,
+                Message: config.success.retrive.Message,
+                data: result
             })
-        }
-        else {
-            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-        }
-    })
+
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
 }
+
 
 //GET UPCOMING APPOINTMENTS WITH PATIENTS FOR LOGGED DOCTOR
 const viewAppointmentByDoctor = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-            doctorDataByUserId(userIdValue.id, function (doctorData) {
-                if (!doctorData[0]) {
-                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
-                }
-                else {
-                    viewAppointments(doctorData[0].doctorId, function (result) {
-                        return res.json({
-                            StatusCode: config.success.retrive.statusCode,
-                            Message: config.success.retrive.Message,
-                            data: result
-                        })
-                    })
-                }
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                return doctorDataByUserId(userIdValue.id)
+            } else {
+                throw config.error.forbidden
+            }
+        })
+        .then((doctorData) => {
+            if (!doctorData[0]) {
+                throw config.error.doctorNotFoundError
+            } else {
+                return viewAppointments(doctorData[0].doctorId)
+            }
+        })
+        .then((result) => {
+            return res.json({
+                StatusCode: config.success.retrive.statusCode,
+                Message: config.success.retrive.Message,
+                data: result
             })
-        }
-        else {
-            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-        }
-    })
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
 }
 
-const availablePatientsForAppointment = async (req, res) => {
-    const token = req.headers.authorization.split(' ')[1];
-    const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-
-            availablePatients(function (result) {
-                return res.json({
-                    StatusCode: config.success.retrive.statusCode,
-                    Message: config.success.retrive.Message,
-                    data: result
-                })
-            })
-
-        }
-        else {
-            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-        }
-    })
-}
 
 //GET MEDICAL HISTORY AND TREATEMENT PLAN FOR PATIENTS WHICH  ARE ASSIGNED TO LOGGED DOCTOR
 const viewMedicalHistory = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-            doctorDataByUserId(userIdValue.id, function (doctorData) {
-                if (!doctorData[0]) {
-                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
-                }
-                else {
-                    viewMedicalHistoryByDoctor(doctorData[0].doctorId, function (result) {
-                        return res.json({
-                            StatusCode: config.success.retrive.statusCode,
-                            Message: config.success.retrive.Message,
-                            data: result
-                        })
-                    })
-                }
+    userDataByUserId(userIdValue.id)
+        .then((userData) => {
+            if (userData[0].isDoctor == 1) {
+                return doctorDataByUserId(userIdValue.id)
+            }
+            else {
+                throw config.error.forbidden
+            }
+        })
+        .then((doctorData) => {
+            if (!doctorData[0]) {
+                throw config.error.doctorNotFoundError
+            }
+            else {
+                return viewMedicalHistoryByDoctor(doctorData[0].doctorId)
+            }
+        })
+        .then((result) => {
+            return res.json({
+                StatusCode: config.success.retrive.statusCode,
+                Message: config.success.retrive.Message,
+                data: result
             })
-        }
-        else {
-            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-        }
-    })
+        })
+        .catch((error) => {
+            return res.status(error.statusCode).send(error)
+        })
 }
 
 
-//SCHEDULE APPOINTMENTS FOR EACH PATIENTS WHICH ARE ASSIGNED TO THEM BY PASSING THEIR USERID
-const ScheduleAppointmentsByDoctor = async (req, res) => {
+const downloadPatientReports = async (req, res) => {
+    let authed = false;
     const token = req.headers.authorization.split(' ')[1];
     const userIdValue = jwt.verify(token, process.env.JWT_SECRET)
-    const id = req.query  //accept userId
-
-    checkIsDoctor(userIdValue.id, function (result) {
-        if (result[0].isDoctor == 1) {
-            doctorDataByUserId(userIdValue.id, function (doctorData) {
-                if (!doctorData[0]) {
-                    return res.status(config.error.doctorNotFoundError.statusCode).send(config.error.doctorNotFoundError)
+    const patientUserId = req.query.patientUserId;
+    const fileUrl = req.query.fileUrl //accept file url
+    var fileId = fileUrl.split("/");
+    await open(authorizationUrl)
+    setTimeout(() => { oAuth2Client.setCredentials(tokens.tokens); authed = true; }, 10000)
+    setTimeout(() => {
+        userDataByUserId(userIdValue.id)
+            .then((userData) => {
+                if (userData[0].isDoctor == 1) {
+                    return doctorDataByUserId(userIdValue.id)
                 }
                 else {
-                    patientPersonalByUserId(id.id, function (personalData) {
-                        if (!personalData[0]) {
-                            return res.status(config.error.patientNotFoundError.statusCode).send(config.error.patientNotFoundError)
-                        }
-                        else {
-                            patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId, function (patientData) {
-                                if (!patientData[0]) {
-                                    return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-                                }
-                                else {
-                                    ScheduleAppointments(req, doctorData[0].doctorId, personalData[0].patientId, function (results) {
-                                        return res.status(config.success.update.statusCode).send(config.success.update)
-                                    })
-                                }
-                            })
-                        }
-                    })
+                    throw config.error.forbidden
+                }
+            })
+            .then((doctorData) => {
+                if (!doctorData[0]) {
+                    return config.error.doctorNotFoundError
+                } else {
+                    return Promise.all([userDataByUserId(patientUserId), doctorData])
+                }
+            })
+            .then(([patientUserData, doctorData]) => {
+                if (patientUserData[0].isDeleted == 1) {
+                    throw config.error.notFoundError
+                }
+                else {
+                    return Promise.all([patientPersonalByUserId(patientUserId), doctorData])
+                }
+            })
+            .then(([personalData, doctorData]) => {
+                if (!personalData[0]) {
+                    throw config.error.patientNotFoundError
+                }
+                else {
+                    return Promise.all([patientMedicalDataByUserId(personalData[0].patientId, doctorData[0].doctorId), personalData, doctorData])
                 }
 
             })
-        }
-        else {
-            return res.status(config.error.forbidden.statusCode).send(config.error.forbidden)
-        }
-    })
+            .then(([medicalData, personalData, doctorData]) => {
+                if (!medicalData[0]) {
+                    throw config.error.forbidden
+                }
+                else {
+                    return patientMedicalReportByUserId(personalData[0].patientId, doctorData[0].doctorId, fileUrl)
+                }
+            })
+            .then((medicalReport) => {
+                if (!medicalReport[0]) {
+                    throw config.error.fileNotFound
+                } else {
+                    if (authed == true) {
+                        downloadFile(fileId[5]);
+                        throw config.success.download
+                    }
+                }
+            })
+            .catch((error) => {
+                return res.status(error.statusCode).send(error)
+            })
+    }, 12000);
 }
 
-export { getAuthURL, getAccessToken, insertDoctorData, createPatientByDoctor, insertMedicalDataByDoctor, viewAssignedPatients, updateDoctorData, uploadReport, uploadMedicalReport, viewPatientReports, updatePMDataByDoctor, viewMedicalHistory, ScheduleAppointmentsByDoctor, viewAppointmentByDoctor, availablePatientsForAppointment }
+
+export {
+    insertDoctorData,
+    createPatientByDoctor,
+    insertMedicalDataByDoctor,
+    viewAssignedPatients,
+    updateDoctorData,
+    uploadReport,
+    uploadMedicalReport,
+    viewPatientReports,
+    updatePMDataByDoctor,
+    viewMedicalHistory,
+    insertAppointmentsByDoctor,
+    viewAppointmentByDoctor,
+    downloadPatientReports,
+    uploadPrescription
+}

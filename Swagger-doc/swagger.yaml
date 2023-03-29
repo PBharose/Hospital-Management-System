@@ -1,0 +1,773 @@
+paths:
+  /api/v1/user/register-user:
+   post:
+     tags: [Users Functionality]
+     summary: creating user
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               firstName: 
+                 type: string
+               lastName:
+                 type: string
+               emailId:
+                 type: string
+               userPassword:
+                 type: string
+     responses:
+       201:
+         description: created
+ 
+
+  /api/v1/user/login-user:
+   post:
+     tags: 
+      - Users Functionality
+     summary: Login user
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               emailId:
+                 type: string
+               userPassword:
+                 type: string
+     responses:
+       200:
+         description: Login successfully
+
+  /api/v1/user/update-user:
+   patch:
+     tags: [Users Functionality]
+     summary: Update user
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               FieldName:
+                 type: string
+     responses:
+       200:
+         description: Updated successfully
+
+
+
+  /api/v1/user/admin/insert-medical-data:
+   post:
+     tags: [Admin Functionalities]
+     summary: Assigning patients to doctors in medical data with patients medical history by admin
+     parameters:
+      - in: query
+        name: patientUserId
+        description: Enter patientUserId
+        schema:
+          type: integer
+      - in: query
+        name: doctorUserId
+        description: Enter doctorUserId
+        schema:
+          type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               medicalHistory: 
+                 type: string
+     responses:
+       201:
+         description: Inserted successfully
+
+
+
+  /api/v1/user/admin/insert-appointments:
+   post:
+     tags: [Admin Functionalities]
+     summary: Inserting appointment date & time with reason for appointment of patients along with doctor userId by admin
+     parameters:
+      - in: query
+        name: patientUserId
+        description: Enter patientUserId
+        schema:
+          type: integer
+      - in: query
+        name: doctorUserId
+        description: Enter doctorUserId
+        schema:
+          type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               appointmentDateTime: 
+                 type: string
+               reasonForAppointment: 
+                 type: string
+     responses:
+       201:
+         description: Inserted successfully
+
+
+  /api/v1/user/admin/edit-user-data:
+   patch:
+     tags: [Admin Functionalities]
+     summary: Edit patients user data
+     parameters:
+       - in : query
+         name: userId
+         description: Enter userId
+         schema:
+           type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               FieldName:
+                 type: string
+     responses:
+       200:
+         description: Updated successfully
+
+
+
+  /api/v1/user/admin/edit-personal-data:
+   patch:
+     tags: [Admin Functionalities]
+     summary: Edit patients personal data
+     parameters:
+       - in : query
+         name: userId
+         description: Enter userId
+         schema:
+           type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               FieldName:
+                 type: string
+     responses:
+       200:
+         description: Updated successfully
+
+
+  /api/v1/user/admin/edit-family-data:
+   patch:
+     tags: [Admin Functionalities]
+     summary: Edit patients family data
+     parameters:
+       - in : query
+         name: userId
+         description: Enter userId
+         schema:
+           type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               FieldName:
+                 type: string
+     responses:
+       200:
+         description: Updated successfully
+
+
+
+  /api/v1/user/admin/edit-appointments:
+   patch:
+     tags: [Admin Functionalities]
+     summary: Edit patients appointment data
+     parameters:
+       - in : query
+         name: appointmentId
+         description: Enter appointmentId
+         schema:
+           type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               FieldName:
+                 type: string
+     responses:
+       200:
+         description: Updated successfully
+
+
+  /api/v1/user/admin/all-users:
+   get: 
+     tags: [Admin Functionalities]
+     description: Used to get all users
+     responses:
+       200:
+         description: Retrived all data
+ 
+
+  /api/v1/user/admin/view-patient-doctor:
+   get: 
+     tags: [Admin Functionalities]
+     description: Used to get all patients details with their assigned doctors-id
+     responses:
+       200:
+         description: Retrived all data
+
+
+  /api/v1/user/admin/view-patient-documents:
+   get: 
+     tags: [Admin Functionalities]
+     description: Used to get all patients documents
+     parameters:
+       - in : query
+         name: patientUserId
+         description: Enter patientUserId
+         schema:
+           type: integer
+     responses:
+       200:
+         description: Retrived all data
+
+
+  /api/v1/user/admin/all-medical-info:
+   get: 
+     tags: [Admin Functionalities]
+     description: Used to get all medical details of patients with their assigned doctors-id
+     responses:
+       200:
+         description: Retrived all data
+
+ 
+
+  /api/v1/user/admin/view-unApproved-appointments:
+   get: 
+     tags: [Admin Functionalities]
+     description: Used to get all unapproved appointments patients with their assigned doctors-id
+     responses:
+       200:
+         description: Retrived all data
+
+
+  /api/v1/user/admin/delete-patient:
+     patch:
+        tags: [Admin Functionalities]
+        summary: Used to delete patient details
+        parameters:
+            - in: query
+              name: userId
+              description: Enter userId
+              schema:
+                 type: integer
+        responses:
+            '200':
+                description: user deleted successfully
+   
+
+  /api/v1/user/admin/recover-patient:
+     patch:
+        tags: [Admin Functionalities]
+        summary: Used to recover deleted patient details
+        parameters:
+            - in: query
+              name: userId
+              description: Enter userId
+              schema:
+                 type: integer
+        responses:
+            '200':
+                description: user recovered successfully
+
+
+
+  /api/v1/user/admin/approve-appointment:
+     patch:
+        tags: [Admin Functionalities]
+        summary: Used to approved patients appointments
+        parameters:
+            - in: query
+              name: appointmentId
+              description: Enter appointmentId
+              schema:
+                 type: integer
+        responses:
+            '200':
+                description: user recovered successfully
+
+
+  /api/v1/patient/insert-personal-data:
+   post:
+     tags: [Patients Functionality]
+     summary: Insert patients personal data
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               mobNumber:
+                 type: string
+               DOB:
+                 type: string
+               weight:
+                  type: integer
+               height:
+                  type: string
+               countryOfOrigin:
+                  type: string
+               diseaseDescribe:
+                  type: string
+     responses:
+       201:
+         description: Patient personal data inserted successfully
+
+
+
+  /api/v1/patient/insert-family-data:
+   post:
+     tags: [Patients Functionality]
+     summary: Insert patients family data
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               fatherName:
+                 type: string
+               fatherAge:
+                 type: integer
+               fatherCountry:
+                  type: integer
+               motherName:
+                  type: string
+               motherAge:
+                  type: integer
+               motherCountry:
+                  type: string
+     responses:
+       201:
+         description: Patient family data inserted successfully
+
+
+  /api/v1/patient/insert-document-data:
+   post:
+     tags: [Patients Functionality]
+     summary: Insert patients documents data
+     requestBody:
+       content:
+         multipart/form-data:
+           schema:
+             type: object
+             properties:
+               filename:
+                 type: array
+                 items:
+                  type: string
+                  format: binary
+     responses:
+       201:
+         description: Patient documents data inserted successfully
+ 
+
+
+  /api/v1/patient/insert-medical-history-report:
+   post:
+     tags: [ Patients Functionality]
+     summary: Uploading patients medical history reports
+     consumes: multipart/form-data
+     requestBody:
+       content:
+         multipart/form-data:
+           schema:
+             type: object
+             properties:
+               filename:
+                 type: string
+                 format: binary
+
+     responses:
+       201:
+         description: Patient documents data inserted successfully
+ 
+ 
+
+  /api/v1/patient/update-personal-data:
+   patch:
+     tags:  [Patients Functionality]
+     summary: Edit patients personal data
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               FieldName:
+                 type: string
+     responses:
+       200:
+         description: Updated successfully
+
+
+
+  /api/v1/patient/update-family-data:
+   patch:
+     tags:  [Patients Functionality]
+     summary: Edit patients family data
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               FieldName:
+                 type: string
+     responses:
+       200:
+         description: Updated successfully
+
+
+
+  /api/v1/patient/update-medical-history-report:
+   patch:
+     tags:  [Patients Functionality]
+     summary: Update patients medical history reports
+     parameters:
+          - in: query
+            name: fileUrl
+            description: Enter userId
+            schema:
+              type: string
+     requestBody:
+       content:
+         multipart/form-data:
+           schema:
+             type: object
+             properties:
+               filename:
+                 type: string
+                 format: binary
+     responses:
+       200:
+         description: Updated successfully
+
+
+  /api/v1/patient/view-patient-appointments:
+   get: 
+     tags: [Patients Functionality]
+     description: Used to view all upcoming appoints with their doctor details
+     responses:
+       200:
+         description: Retrived all data
+ 
+
+
+  /api/v1/doctor/insert-doctor-data:
+   post:
+     tags: [Doctors Functionality]
+     summary: Inserting doctor's data
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               specialization:
+                 type: string
+               licenseNo:
+                 type: string
+               contactNo:
+                 type: string
+     responses:
+       201:
+         description: Doctor's data inserted successfully
+ 
+
+  /api/v1/doctor/create-patient:
+   post:
+     tags: [Doctors Functionality]
+     summary: Creating patients by doctor
+     parameters:
+      - in: query
+        name: userId
+        description: Enter userId
+        schema:
+          type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               mobNumber:
+                 type: string
+               DOB:
+                 type: string
+               weight:
+                  type: integer
+               height:
+                  type: string
+               countryOfOrigin:
+                  type: string
+               diseaseDescribe:
+                  type: string
+     responses:
+       201:
+         description: Doctor's created patient successfully
+ 
+
+  /api/v1/doctor/insert-medical-data:
+   post:
+     tags: [ Doctors Functionality]
+     summary: Inserting medical data of patients
+     parameters:
+      - in: query
+        name: patientUserId
+        description: Enter patientUserId
+        schema:
+          type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               medicalHistory: 
+                 type: string
+     responses:
+       201:
+         description: Inserted successfully
+ 
+
+
+  /api/v1/doctor/schedule-appointments:
+   post:
+     tags: [Doctors Functionality]
+     summary: Inserting appointment date & time with reason for appointment of patients by doctor
+     parameters:
+      - in: query
+        name: patientUserId
+        description: Enter patientUserId
+        schema:
+          type: integer
+      - in: query
+        name: doctorUserId
+        description: Enter doctorUserId
+        schema:
+          type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               appointmentDateTime: 
+                 type: string
+               reasonForAppointment: 
+                 type: string
+     responses:
+       201:
+         description: Inserted successfully
+
+
+  /api/v1/doctor/insert-medical-report:
+   post:
+     tags: [ Doctors Functionality]
+     summary: Uploading patients medical reports
+     consumes: multipart/form-data
+     parameters:
+       - in : query
+         name: patientUserId
+         description: Enter patientUserId
+         schema:
+           type: integer
+     requestBody:
+       content:
+         multipart/form-data:
+           schema:
+             type: object
+             properties:
+               filename:
+                 type: string
+                 format: binary
+
+     responses:
+       201:
+         description: Patients medical report inserted successfully
+ 
+
+
+  /api/v1/doctor/upload-prescription:
+   post:
+     tags: [ Doctors Functionality]
+     summary: Uploading patients medical reports
+     consumes: multipart/form-data
+     parameters:
+       - in : query
+         name: appointmentId
+         description: Enter appointmentId
+         schema:
+           type: integer
+     requestBody:
+       content:
+         multipart/form-data:
+           schema:
+             type: object
+             properties:
+               filename:
+                 type: string
+                 format: binary
+
+     responses:
+       201:
+         description: Prescription inserted successfully
+ 
+
+  /api/v1/doctor/update-medical-data:
+   patch:
+     tags: [Doctors Functionality]
+     summary: Update patients medical data
+     parameters:
+       - in : query
+         name: patientUserId
+         description: Enter patientUserId
+         schema:
+           type: integer
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               medicalHistory:
+                 type: string
+     responses:
+       200:
+         description: Updated successfully
+ 
+
+
+  /api/v1/doctor/update-doctor-data:
+   patch:
+     tags: [ Doctors Functionality]
+     summary: Update doctors data
+     requestBody:
+       content:
+         application/json:
+           schema:
+             type: object
+             properties:
+               FieldName:
+                 type: string
+     responses:
+       200:
+         description: Updated successfully
+ 
+
+
+  /api/v1/doctor/view-medical-history:
+   get: 
+     tags: [ Doctors Functionality]
+     description: Used to view all medical history of patients which are assigned
+     responses:
+       200:
+         description: Retrived all data
+ 
+
+
+  /api/v1/doctor/view-appointments:
+   get: 
+     tags: [ Doctors Functionality]
+     description: Used to view upcoming appointment details with assigned patients
+     responses:
+       200:
+         description: Retrived all data
+ 
+
+
+  /api/v1/doctor/view-assigned-patients:
+   get: 
+     tags: [ Doctors Functionality]
+     description: Used to view all patient details which are assigned
+     responses:
+       200:
+         description: Retrived all data
+ 
+
+
+  /api/v1/doctor/view-patient-reports:
+   get: 
+     tags: [Doctors Functionality]
+     description: Used to view patients medical report
+     parameters:
+       - in : query
+         name: patientUserId
+         description: Enter patientUserId
+         schema:
+           type: integer
+     responses:
+       200:
+         description: Retrived all data
+ 
+
+ 
+
+  /api/v1/doctor/download-patient-reports:
+   get: 
+     tags: [Doctors Functionality]
+     description: Used to download patients medical report
+     parameters:
+       - in : query
+         name: patientUserId
+         description: Enter patientUserId
+         schema:
+           type: integer
+       - in : query
+         name: fileUrl
+         description: Enter file url want to download
+         schema:
+           type: string
+     responses:
+       200:
+         description: Retrived all data
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+ 
